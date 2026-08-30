@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppState, NOTIFICATION_CATEGORIES } from '../../state/AppState';
+import { PRIVACY_OPTIONS, NOTIFICATION_CATEGORIES } from '../../state/AppState';
+import { useAuth } from '../../state/AuthContext';
+import { getPrivacySettings, getNotificationSettings, cyclePrivacy as cyclePrivacyRemote, toggleNotification as toggleNotificationRemote } from '../../services/settings';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
@@ -10,7 +12,9 @@ import PressableScale from '../../components/PressableScale';
 import Toggle from '../../components/Toggle';
 import ConfirmSheet from '../../components/ConfirmSheet';
 import Toast from '../../components/Toast';
-import { ChevronLeftIcon, ChevronRightIcon } from '../../theme/icons';
+import { SkeletonBlock } from '../../components/Skeleton';
+import EmptyState from '../../components/EmptyState';
+import { ChevronLeftIcon, ChevronRightIcon, WarningIcon } from '../../theme/icons';
 
 const ROWS: { label: string; sub: string }[] = [
   { label: 'Profile visibility', sub: 'Who can see your name' },
@@ -21,17 +25,108 @@ const ROWS: { label: string; sub: string }[] = [
   { label: 'Analytics', sub: 'Crashes and feature use, never content' },
 ];
 
+type LoadState = 'loading' | 'error' | 'ready';
+
 export default function PrivacyScreen() {
-  const { state, cyclePrivacy, toggleNotification } = useAppState();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [privacy, setPrivacy] = useState<Record<string, string>>({});
+  const [notifications, setNotifications] = useState<Record<string, boolean>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let mounted = true;
+    Promise.all([getPrivacySettings(user.id), getNotificationSettings(user.id)])
+      .then(([privacyResult, notificationsResult]) => {
+        if (!mounted) return;
+        setPrivacy(privacyResult);
+        setNotifications(notificationsResult);
+        setLoading(false);
+        setError(false);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setLoading(false);
+        setError(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [user, reloadKey]);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(false);
+    setReloadKey((k) => k + 1);
+  }, []);
+
+  const loadState: LoadState = loading ? 'loading' : error ? 'error' : 'ready';
+
+  // Optimistic: flip the value immediately (same cycle math the server will
+  // apply) so the row feels instant, then persist; revert + toast on failure.
+  const onCyclePrivacy = (key: string) => {
+    if (!user) return;
+    const opts = PRIVACY_OPTIONS[key];
+    if (!opts) return;
+    const previous = privacy[key] ?? opts[0];
+    const optimistic = opts[(opts.indexOf(previous) + 1) % opts.length];
+    setPrivacy((p) => ({ ...p, [key]: optimistic }));
+
+    cyclePrivacyRemote(user.id, key)
+      .then((confirmed) => setPrivacy((p) => ({ ...p, [key]: confirmed })))
+      .catch(() => {
+        setPrivacy((p) => ({ ...p, [key]: previous }));
+        setToast('Couldn’t save that setting. Try again.');
+      });
+  };
+
+  const onToggleNotification = (key: string) => {
+    if (!user) return;
+    const previous = notifications[key] ?? true;
+    setNotifications((n) => ({ ...n, [key]: !previous }));
+
+    toggleNotificationRemote(user.id, key)
+      .then((confirmed) => setNotifications((n) => ({ ...n, [key]: confirmed })))
+      .catch(() => {
+        setNotifications((n) => ({ ...n, [key]: previous }));
+        setToast('Couldn’t save that setting. Try again.');
+      });
+  };
 
   const onExport = () => setToast('Export started — we’ll save a file to your device when it’s ready.');
   const onDelete = () => {
     setConfirmDelete(false);
     setToast('Account deletion requested. You’ll get a confirmation email before anything is removed.');
   };
+
+  if (loadState === 'loading') {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + 12, paddingHorizontal: 24 }}>
+        <SkeletonBlock width={140} height={27} style={{ marginTop: 12 }} />
+        <SkeletonBlock width="100%" height={280} radius={24} style={{ marginTop: 22 }} />
+        <SkeletonBlock width="100%" height={220} radius={24} style={{ marginTop: 22 }} />
+      </View>
+    );
+  }
+
+  if (loadState === 'error') {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + 12, paddingHorizontal: 24, justifyContent: 'center' }}>
+        <EmptyState
+          icon={<WarningIcon size={22} color={colors.inkMuted} />}
+          title="Couldn’t load your settings"
+          subtitle="Check your connection and try again."
+          actionLabel="Retry"
+          onAction={load}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -49,12 +144,12 @@ export default function PrivacyScreen() {
         <RiseIn delay={80} style={{ paddingHorizontal: 24, marginTop: 18 }}>
           <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
             {ROWS.map((row, i) => {
-              const value = state.privacy[row.label];
+              const value = privacy[row.label];
               const isOn = value === 'On';
               return (
                 <PressableScale
                   key={row.label}
-                  onPress={() => cyclePrivacy(row.label)}
+                  onPress={() => onCyclePrivacy(row.label)}
                   scaleTo={1}
                   accessibilityRole="button"
                   accessibilityLabel={`${row.label}, currently ${value}. Double tap to change.`}
@@ -93,10 +188,10 @@ export default function PrivacyScreen() {
             {NOTIFICATION_CATEGORIES.map((cat, i) => (
               <PressableScale
                 key={cat}
-                onPress={() => toggleNotification(cat)}
+                onPress={() => onToggleNotification(cat)}
                 scaleTo={1}
                 accessibilityRole="switch"
-                accessibilityState={{ checked: state.notifications[cat] }}
+                accessibilityState={{ checked: notifications[cat] }}
                 accessibilityLabel={`${cat} notifications`}
                 style={{
                   paddingVertical: 14,
@@ -110,12 +205,12 @@ export default function PrivacyScreen() {
                 }}
               >
                 <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkStrong }}>{cat}</Text>
-                <Toggle on={state.notifications[cat]} />
+                <Toggle on={notifications[cat]} />
               </PressableScale>
             ))}
           </View>
           <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 10, lineHeight: 18 }}>
-            {Object.values(state.notifications).filter(Boolean).length} of {NOTIFICATION_CATEGORIES.length} categories on.
+            {Object.values(notifications).filter(Boolean).length} of {NOTIFICATION_CATEGORIES.length} categories on.
           </Text>
         </RiseIn>
 

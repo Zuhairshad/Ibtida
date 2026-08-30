@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppState } from '../../state/AppState';
 import { colors } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
 import SegmentedControl from '../../components/SegmentedControl';
@@ -10,23 +9,33 @@ import { PROGRESS_STATS_BY_RANGE, PROGRESS_BARS_BY_RANGE, PROGRESS_AXIS, PROGRES
 
 const RANGES = ['Today', 'Week', 'Month', 'Year'];
 
+// NOTE: the panels below (dhikr-per-day bars, prayer-consistency heatmap)
+// remain static demo content. `adhkar_goals` only stores a single running
+// `progress` integer per goal and `tasbeeh_sessions` a single `count`/`reps`
+// — there is no per-day history table backing a real "Dhikr per day" chart,
+// and the heatmap mixes in prayer data that belongs to the prayers domain's
+// own tables. Wiring this to real history would need a new migration (e.g.
+// a per-day adhkar log) which is out of this pass's scope — left for a
+// future agent per the task's "note in report" guidance rather than invented
+// here. Only the range selector itself (which of these static datasets is
+// shown) is real, local UI state — it isn't persisted anywhere.
 export default function ProgressScreen() {
-  const { state, setRange } = useAppState();
   const insets = useSafeAreaInsets();
+  const [range, setRange] = useState(0);
 
   // Every panel below reads from the selected range, so the control actually
   // changes what you see rather than just highlighting a different pill.
-  const stats = PROGRESS_STATS_BY_RANGE[state.range];
-  const bars = PROGRESS_BARS_BY_RANGE[state.range];
-  const [axisStart, axisEnd] = PROGRESS_AXIS[state.range];
-  const heat = PROGRESS_HEAT.slice(0, PROGRESS_HEAT_DAYS[state.range]);
+  const stats = PROGRESS_STATS_BY_RANGE[range];
+  const bars = PROGRESS_BARS_BY_RANGE[range];
+  const [axisStart, axisEnd] = PROGRESS_AXIS[range];
+  const heat = PROGRESS_HEAT.slice(0, PROGRESS_HEAT_DAYS[range]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
         <RiseIn style={{ paddingHorizontal: 24 }}>
           <Text style={{ fontSize: 27, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025 }}>Progress</Text>
-          <SegmentedControl options={RANGES} selected={state.range} onChange={setRange} style={{ marginTop: 16 }} />
+          <SegmentedControl options={RANGES} selected={range} onChange={setRange} style={{ marginTop: 16 }} />
         </RiseIn>
 
         <RiseIn delay={60} style={{ paddingHorizontal: 24, marginTop: 18, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>

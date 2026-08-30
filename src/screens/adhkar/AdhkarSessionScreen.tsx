@@ -1,20 +1,59 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 
-import { useAppState } from '../../state/AppState';
+import { useAuth } from '../../state/AuthContext';
+import { getTasbeehSession, incrementDhikrReps } from '../../services/adhkar';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
+import { SkeletonBlock } from '../../components/Skeleton';
 import Toast from '../../components/Toast';
 import { ChevronLeftIcon, BookmarkIcon, MoreIcon } from '../../theme/icons';
 
+// Matches AppState's `buzz(6)` for tapDhikr (6ms <= 10 -> selectionAsync).
+function tapBuzz() {
+  try {
+    Haptics.selectionAsync();
+  } catch {
+    // haptics unavailable — silently no-op, matches the rest of the app
+  }
+}
+
 export default function AdhkarSessionScreen() {
-  const { state, tapDhikr } = useAppState();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [reps, setReps] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      let active = true;
+      setLoading(true);
+      getTasbeehSession(user.id)
+        .then((s) => active && setReps(s.reps))
+        .catch(() => active && setToast('Could not load your progress.'))
+        .finally(() => active && setLoading(false));
+      return () => {
+        active = false;
+      };
+    }, [user])
+  );
+
+  const onContinue = () => {
+    if (!user) return;
+    tapBuzz();
+    setReps((r) => Math.min(r + 1, 100));
+    incrementDhikrReps(user.id)
+      .then((result) => setReps(result.reps))
+      .catch(() => setToast('Could not save your progress.'));
+  };
 
   return (
     <ScreenFade duration={280} style={{ backgroundColor: colors.bgTint }}>
@@ -80,12 +119,17 @@ export default function AdhkarSessionScreen() {
 
       <View style={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 20, paddingTop: 14 }}>
         <PressableScale
-          onPress={tapDhikr}
+          onPress={onContinue}
+          disabled={loading}
           scaleTo={0.99}
-          style={{ minHeight: 56, borderRadius: 16, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 }}
+          style={{ minHeight: 56, borderRadius: 16, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, opacity: loading ? 0.6 : 1 }}
         >
           <Text style={{ fontSize: 16, fontWeight: '600', color: '#FFFFFF' }}>Continue</Text>
-          <Text style={{ fontSize: 16, fontWeight: '500', color: 'rgba(248,247,243,0.55)' }}>{state.dhikrReps} / 100</Text>
+          {loading ? (
+            <SkeletonBlock width={48} height={16} style={{ backgroundColor: 'rgba(248,247,243,0.25)' }} />
+          ) : (
+            <Text style={{ fontSize: 16, fontWeight: '500', color: 'rgba(248,247,243,0.55)' }}>{reps} / 100</Text>
+          )}
         </PressableScale>
       </View>
 

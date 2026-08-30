@@ -1,22 +1,53 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppState } from '../../state/AppState';
+import { useAuth } from '../../state/AuthContext';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import SegmentedControl from '../../components/SegmentedControl';
 import EmptyState from '../../components/EmptyState';
+import { RowSkeleton } from '../../components/Skeleton';
+import Toast from '../../components/Toast';
 import { BookmarkIcon, SearchIcon, ChevronRightIcon } from '../../theme/icons';
 import { SURAHS, JUZ, HISTORY } from '../../state/quranData';
+import { listBookmarks, toggleBookmark } from '../../services/quran';
 
 const TABS = ['Surahs', 'Juz', 'Bookmarks', 'History', 'Search'];
 
 export default function QuranScreen() {
-  const { state, setQuranTab, toggleBookmark } = useAppState();
+  // quranTab is ephemeral UI state (which tab pane is showing) — stays on
+  // AppState. Bookmarks are the persisted domain data for this screen, so
+  // they're fetched/written through src/services/quran.ts instead.
+  const { state, setQuranTab } = useAppState();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
+
+  // null = not loaded yet, lets "loading" be derived at render time instead
+  // of a separate setState called synchronously inside the fetch effect.
+  const [bookmarks, setBookmarks] = useState<number[] | null>(null);
+  const loadingBookmarks = bookmarks === null;
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let mounted = true;
+    listBookmarks(user.id)
+      .then((rows) => {
+        if (mounted) setBookmarks(rows);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setBookmarks((b) => b ?? []);
+        setToast("Couldn't load your bookmarks.");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
 
   const onTabChange = (i: number) => {
     // Search is a full screen of its own rather than an inline tab pane.
@@ -24,8 +55,24 @@ export default function QuranScreen() {
     else setQuranTab(i);
   };
 
+  const onToggleBookmark = useCallback(
+    async (surahNumber: number) => {
+      if (!user || bookmarks === null) return;
+      const wasMarked = bookmarks.includes(surahNumber);
+      // Optimistic UI: flip immediately, revert if the write fails.
+      setBookmarks((prev) => (prev === null ? prev : wasMarked ? prev.filter((n) => n !== surahNumber) : [...prev, surahNumber]));
+      try {
+        await toggleBookmark(user.id, surahNumber);
+      } catch {
+        setBookmarks((prev) => (prev === null ? prev : wasMarked ? [...prev, surahNumber] : prev.filter((n) => n !== surahNumber)));
+        setToast("Couldn't update bookmark. Try again.");
+      }
+    },
+    [user, bookmarks]
+  );
+
   const surahRow = (s: (typeof SURAHS)[number]) => {
-    const marked = state.bookmarks.includes(s.n);
+    const marked = !!bookmarks?.includes(s.n);
     return (
       <PressableScale
         key={s.n}
@@ -44,7 +91,7 @@ export default function QuranScreen() {
           <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 5 }}>{s.meta}</Text>
         </View>
         <PressableScale
-          onPress={() => toggleBookmark(s.n)}
+          onPress={() => onToggleBookmark(s.n)}
           scaleTo={0.85}
           accessibilityRole="button"
           accessibilityState={{ selected: marked }}
@@ -120,7 +167,9 @@ export default function QuranScreen() {
             ))}
 
           {state.quranTab === 2 &&
-            (state.bookmarks.length === 0 ? (
+            (loadingBookmarks ? (
+              <RowSkeleton rows={3} />
+            ) : bookmarks.length === 0 ? (
               <EmptyState
                 icon={<BookmarkIcon size={22} color={colors.inkMuted} />}
                 title="No bookmarks yet"
@@ -129,7 +178,7 @@ export default function QuranScreen() {
                 onAction={() => setQuranTab(0)}
               />
             ) : (
-              SURAHS.filter((s) => state.bookmarks.includes(s.n)).map(surahRow)
+              SURAHS.filter((s) => bookmarks.includes(s.n)).map(surahRow)
             ))}
 
           {state.quranTab === 3 &&
@@ -151,6 +200,8 @@ export default function QuranScreen() {
             ))}
         </RiseIn>
       </ScrollView>
+
+      <Toast message={toast} onDismiss={() => setToast(null)} />
     </View>
   );
 }

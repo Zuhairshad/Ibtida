@@ -1,24 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppState } from '../../state/AppState';
+import { useAuth } from '../../state/AuthContext';
+import { continueCounting } from '../../services/adhkar';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import ProgressRing from '../../components/ProgressRing';
 import PrimaryButton from '../../components/PrimaryButton';
 import SecondaryButton from '../../components/SecondaryButton';
+import Toast from '../../components/Toast';
 
 // A genuine celebration moment — no confetti, no gaming effects. Subtle
 // light, a completed ring, "Alhamdulillah." Matches the prototype exactly.
 export default function GoalCompleteScreen() {
-  const { continueCounting } = useAppState();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const [toast, setToast] = useState<string | null>(null);
 
-  const onKeepCounting = () => {
-    continueCounting();
+  const onKeepCounting = async () => {
+    // Navigate immediately — the tasbeeh screen reloads its own count on
+    // focus, so it doesn't matter that this write hasn't landed yet.
     nav.tasbeeh();
+    if (!user) return;
+    try {
+      await continueCounting(user.id);
+    } catch {
+      setToast('Could not reset your count — it will still show the completed total.');
+    }
   };
 
   return (
@@ -45,6 +55,8 @@ export default function GoalCompleteScreen() {
         <PrimaryButton label="Done" onPress={nav.home} />
         <SecondaryButton label="Keep counting" onPress={onKeepCounting} />
       </View>
+
+      <Toast message={toast} onDismiss={() => setToast(null)} />
     </ScreenFade>
   );
 }

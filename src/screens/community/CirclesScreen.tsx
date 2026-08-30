@@ -1,19 +1,41 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 
-import { useAppState } from '../../state/AppState';
+import { useAuth } from '../../state/AuthContext';
+import { listMyCircles, MyCircle } from '../../services/community';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
-import AvatarStack from '../../components/AvatarStack';
-import { ChevronLeftIcon } from '../../theme/icons';
-import { CIRCLES } from '../../state/communityData';
+import { RowSkeleton } from '../../components/Skeleton';
+import EmptyState from '../../components/EmptyState';
+import Toast from '../../components/Toast';
+import { ChevronLeftIcon, CommunityIcon } from '../../theme/icons';
 
 export default function CirclesScreen() {
-  const { state } = useAppState();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
+
+  const [circles, setCircles] = useState<MyCircle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      let active = true;
+      setLoading(true);
+      listMyCircles(user.id)
+        .then((c) => active && setCircles(c))
+        .catch(() => active && setToast('Could not load your circles.'))
+        .finally(() => active && setLoading(false));
+      return () => {
+        active = false;
+      };
+    }, [user])
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -38,48 +60,42 @@ export default function CirclesScreen() {
           <Text style={{ fontSize: 13.5, color: colors.inkMuted, marginTop: 9, lineHeight: 20 }}>Private groups. Invite only unless you change it.</Text>
         </RiseIn>
 
-        <RiseIn delay={100} style={{ paddingHorizontal: 24, marginTop: 18, gap: 10 }}>
-          {/* Circles the user just created appear at the top, empty of
-              activity until members join. */}
-          {state.circleNames.map((name) => (
-            <View key={name} style={{ borderWidth: 1, borderColor: 'rgba(61,115,201,0.25)', borderRadius: 24, padding: 20, backgroundColor: colors.primaryTint }}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 17, fontWeight: '600', color: colors.inkStrong }}>{name}</Text>
-                  <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 6 }}>1 member · Invite only</Text>
-                </View>
-                <View style={{ backgroundColor: 'rgba(255,255,255,0.8)', paddingVertical: 7, paddingHorizontal: 10, borderRadius: 10 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>New</Text>
-                </View>
-              </View>
-              <Text style={{ fontSize: 12.5, lineHeight: 19, color: '#3A5A7E', marginTop: 14 }}>Invite someone to get started — progress appears once members join.</Text>
-            </View>
-          ))}
-          {CIRCLES.map((c) => (
-            <View key={c.name} style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 24, padding: 20, backgroundColor: '#FFFFFF' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                <View>
-                  <Text style={{ fontSize: 17, fontWeight: '600', color: colors.inkStrong }}>{c.name}</Text>
-                  <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 6 }}>
-                    {c.members} members · {c.privacy}
-                  </Text>
-                </View>
-                <AvatarStack avatars={c.avatars} />
-              </View>
-              <View style={{ marginTop: 16, padding: 14, borderRadius: 18, backgroundColor: '#FFFFFF' }}>
-                <Text style={{ fontSize: 13.5, fontWeight: '600', color: colors.inkStrong }}>{c.goal}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 12 }}>
-                  <View style={{ height: 6, flex: 1, borderRadius: 3, backgroundColor: colors.bgTint, overflow: 'hidden' }}>
-                    <View style={{ height: '100%', borderRadius: 3, backgroundColor: colors.success, width: `${c.pct}%` }} />
+        <RiseIn delay={100} style={{ paddingHorizontal: 24, marginTop: 18 }}>
+          {loading ? (
+            <RowSkeleton rows={2} />
+          ) : circles.length === 0 ? (
+            <EmptyState
+              icon={<CommunityIcon />}
+              title="No circles yet"
+              subtitle="Start a small private group — family, friends, a Ramadan or Quran group."
+              actionLabel="New circle"
+              onAction={nav.circleNew}
+            />
+          ) : (
+            <View style={{ gap: 10 }}>
+              {circles.map((c) => (
+                <View key={c.id} style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 24, padding: 20, backgroundColor: '#FFFFFF' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 17, fontWeight: '600', color: colors.inkStrong }}>{c.name}</Text>
+                      <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 6 }}>
+                        {c.memberCount} {c.memberCount === 1 ? 'member' : 'members'} · {c.privacy}
+                      </Text>
+                    </View>
+                    {c.role === 'owner' && (
+                      <View style={{ backgroundColor: colors.bgTint, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 10 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: colors.inkStrong }}>Owner</Text>
+                      </View>
+                    )}
                   </View>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.inkMuted }}>{c.pct}%</Text>
                 </View>
-              </View>
-              <Text style={{ fontSize: 12.5, lineHeight: 19, color: colors.inkMuted, marginTop: 14 }}>{c.activity}</Text>
+              ))}
             </View>
-          ))}
+          )}
         </RiseIn>
       </ScrollView>
+
+      <Toast message={toast} onDismiss={() => setToast(null)} />
     </View>
   );
 }

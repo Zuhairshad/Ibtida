@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppState } from '../../state/AppState';
+import { useAuth } from '../../state/AuthContext';
+import { getNotificationSettings } from '../../services/settings';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import EmptyState from '../../components/EmptyState';
-import { ChevronLeftIcon, BellIcon, PrayerIcon, AdhkarIcon, BeadsIcon, CommunityIcon } from '../../theme/icons';
+import { RowSkeleton } from '../../components/Skeleton';
+import { ChevronLeftIcon, BellIcon, PrayerIcon, AdhkarIcon, BeadsIcon, CommunityIcon, WarningIcon } from '../../theme/icons';
 
 // §24 — contextual, non-nagging notifications. Copy stays encouraging and
 // never guilt-trips ("Your evening adhkar are ready", not "You haven't used
@@ -20,13 +22,47 @@ const ITEMS = [
   { cat: 'Community', title: '10 Million Durood reached 64.8%', body: 'Milestone reached together.', when: '1d', icon: CommunityIcon, tint: colors.primaryTint, ink: '#2F5CA3', go: () => nav.communityGoal(0) },
 ];
 
+type LoadState = 'loading' | 'error' | 'ready';
+
 export default function NotificationsScreen() {
-  const { state } = useAppState();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [notifications, setNotifications] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!user) return;
+    let mounted = true;
+    getNotificationSettings(user.id)
+      .then((result) => {
+        if (!mounted) return;
+        setNotifications(result);
+        setLoading(false);
+        setError(false);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setLoading(false);
+        setError(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [user, reloadKey]);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(false);
+    setReloadKey((k) => k + 1);
+  }, []);
+
+  const loadState: LoadState = loading ? 'loading' : error ? 'error' : 'ready';
 
   // Respect the per-category switches set in Privacy — a disabled category
   // genuinely stops delivering, it isn't just a cosmetic value.
-  const visible = ITEMS.filter((i) => state.notifications[i.cat]);
+  const visible = ITEMS.filter((i) => notifications[i.cat]);
 
   return (
     <ScreenFade duration={280} style={{ backgroundColor: colors.bg, paddingTop: insets.top + 12 }}>
@@ -44,7 +80,17 @@ export default function NotificationsScreen() {
         <Text style={{ fontSize: 27, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025 }}>Notifications</Text>
         <Text style={{ fontSize: 13.5, color: colors.inkMuted, marginTop: 9, lineHeight: 20, marginBottom: 18 }}>Only the categories you turned on in Privacy.</Text>
 
-        {visible.length === 0 ? (
+        {loadState === 'loading' ? (
+          <RowSkeleton rows={4} />
+        ) : loadState === 'error' ? (
+          <EmptyState
+            icon={<WarningIcon size={22} color={colors.inkMuted} />}
+            title="Couldn’t load notifications"
+            subtitle="Check your connection and try again."
+            actionLabel="Retry"
+            onAction={load}
+          />
+        ) : visible.length === 0 ? (
           <EmptyState
             icon={<BellIcon size={22} color={colors.inkMuted} />}
             title="No notifications"

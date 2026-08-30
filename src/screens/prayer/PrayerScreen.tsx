@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppState, PRAYER_TIMES } from '../../state/AppState';
+import { useAppState, PRAYER_TIMES, PrayerName } from '../../state/AppState';
+import { useAuth } from '../../state/AuthContext';
+import * as PrayerService from '../../services/prayers';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
+import { RowSkeleton } from '../../components/Skeleton';
+import Toast from '../../components/Toast';
 import PressableScale from '../../components/PressableScale';
 import ProgressRing from '../../components/ProgressRing';
 import { PinIcon, QiblaIcon, PrayerIcon, MoonIcon, SunIcon, ChevronRightIcon, CheckIcon, NavCompassIcon } from '../../theme/icons';
@@ -13,9 +17,76 @@ import { PinIcon, QiblaIcon, PrayerIcon, MoonIcon, SunIcon, ChevronRightIcon, Ch
 const DATES = ['Sun 24', 'Mon 25', 'Tue 26', 'Wed 27', 'Thu 28', 'Fri 29', 'Sat 30'];
 
 export default function PrayerScreen() {
-  const { state, togglePrayer, toggleQibla, pickDate } = useAppState();
+  const { state, toggleQibla, pickDate } = useAppState();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const nextRingProgress = 1 - state.secs / 1436;
+
+  // DATES is a fixed 7-pill display strip (cosmetic, unchanged); the real
+  // ISO date each pill reads/writes is derived from the device's current
+  // date so prayer_logs gets a real `log_date` regardless of what the
+  // static labels say. Index 6 (rightmost pill) is always "today".
+  const dateStrings = useMemo(() => {
+    const today = new Date();
+    return DATES.map((_, i) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() - (DATES.length - 1 - i));
+      return PrayerService.toISODate(d);
+    });
+  }, []);
+  const selectedDate = dateStrings[state.dateIdx] ?? PrayerService.todayISODate();
+
+  const [logged, setLogged] = useState<Record<PrayerName, boolean> | null>(null);
+  // Which date's data `logged` actually reflects — lets "loading" be derived
+  // at render time (`loadedDate !== selectedDate`) instead of a separate
+  // setState called synchronously inside the fetch effect below.
+  const [loadedDate, setLoadedDate] = useState<string | null>(null);
+  const loadingLog = loadedDate !== selectedDate;
+  const [busy, setBusy] = useState<Set<PrayerName>>(new Set());
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    PrayerService.getPrayerLog(user.id, selectedDate)
+      .then((result) => {
+        if (cancelled) return;
+        setLoadedDate(selectedDate);
+        setLogged(result);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setLoadedDate(selectedDate);
+        setLogged((l) => l ?? PrayerService.emptyPrayerRecord(false));
+        setToastMsg(e instanceof Error ? e.message : 'Could not load your prayer log.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, selectedDate]);
+
+  const handleToggle = useCallback(
+    async (name: PrayerName) => {
+      if (!user || busy.has(name)) return;
+      const prevVal = logged?.[name] ?? false;
+      setLogged((l) => (l ? { ...l, [name]: !prevVal } : l));
+      setBusy((b) => new Set(b).add(name));
+      try {
+        const next = await PrayerService.togglePrayer(user.id, name, selectedDate);
+        setLogged((l) => (l ? { ...l, [name]: next } : l));
+      } catch (e) {
+        setLogged((l) => (l ? { ...l, [name]: prevVal } : l));
+        setToastMsg(e instanceof Error ? e.message : 'Could not update this prayer log.');
+      } finally {
+        setBusy((b) => {
+          const n = new Set(b);
+          n.delete(name);
+          return n;
+        });
+      }
+    },
+    [user, busy, logged, selectedDate]
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -103,57 +174,70 @@ export default function PrayerScreen() {
           </View>
         </RiseIn>
 
-        <RiseIn delay={150} style={{ paddingHorizontal: 20, marginTop: 16, gap: 8 }}>
-          {PRAYER_TIMES.map((p) => {
-            const sunrise = p.state === 'sunrise';
-            const current = p.state === 'current';
-            const done = !sunrise && !!state.logged[p.name as keyof typeof state.logged];
-            const note = sunrise ? 'Not a prayer time' : done ? 'Logged' : current ? 'Current · 23 min remaining' : p.state === 'done' ? 'Missed · not logged' : 'Upcoming · adhan on';
-            const noteInk = current ? '#2F5CA3' : !sunrise && !done && p.state === 'done' ? colors.dangerInk : colors.inkSecondary;
-            const Icon = sunrise ? SunIcon : p.name === 'Isha' || p.name === 'Maghrib' ? MoonIcon : PrayerIcon;
-            return (
-              <PressableScale
-                key={p.name}
-                onPress={sunrise ? undefined : () => nav.prayerDetail(p.name)}
-                disabled={sunrise}
-                scaleTo={0.985}
-                style={{
-                  borderWidth: 1,
-                  borderColor: current ? 'rgba(61,115,201,0.25)' : 'rgba(23,32,28,0.05)',
-                  borderRadius: 22,
-                  paddingVertical: 15,
-                  paddingHorizontal: 16,
-                  backgroundColor: current ? colors.primaryTint : '#FFFFFF',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 13,
-                  minHeight: 48,
-                }}
-              >
-                <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: p.tint, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon size={19} color={p.color} />
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#1B2430' }}>{p.name}</Text>
-                  <Text style={{ fontSize: 12.5, color: noteInk, marginTop: 4 }}>{note}</Text>
-                </View>
-                <Text style={{ fontSize: 16, fontWeight: '500', color: colors.inkStrong }}>{p.time.replace(' AM', ' am').replace(' PM', ' pm')}</Text>
-                {!sunrise &&
-                  (done ? (
-                    <PressableScale onPress={() => togglePrayer(p.name as any)} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: colors.success, alignItems: 'center', justifyContent: 'center' }}>
-                      <CheckIcon size={16} />
-                    </PressableScale>
-                  ) : (
-                    <PressableScale
-                      onPress={() => togglePrayer(p.name as any)}
-                      style={{ width: 44, height: 44, borderRadius: 14, borderWidth: 1.5, borderColor: 'rgba(23,32,28,0.16)', borderStyle: 'dashed', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}
-                    >
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#5C6673' }}>Log</Text>
-                    </PressableScale>
-                  ))}
-              </PressableScale>
-            );
-          })}
+        <RiseIn delay={150} style={{ paddingHorizontal: 20, marginTop: 16 }}>
+          {loadingLog || !logged ? (
+            <RowSkeleton rows={6} />
+          ) : (
+            <View style={{ gap: 8 }}>
+              {PRAYER_TIMES.map((p) => {
+                const sunrise = p.state === 'sunrise';
+                const current = p.state === 'current';
+                const done = !sunrise && !!logged[p.name as PrayerName];
+                const isBusy = !sunrise && busy.has(p.name as PrayerName);
+                const note = sunrise ? 'Not a prayer time' : done ? 'Logged' : current ? 'Current · 23 min remaining' : p.state === 'done' ? 'Missed · not logged' : 'Upcoming · adhan on';
+                const noteInk = current ? '#2F5CA3' : !sunrise && !done && p.state === 'done' ? colors.dangerInk : colors.inkSecondary;
+                const Icon = sunrise ? SunIcon : p.name === 'Isha' || p.name === 'Maghrib' ? MoonIcon : PrayerIcon;
+                return (
+                  <PressableScale
+                    key={p.name}
+                    onPress={sunrise ? undefined : () => nav.prayerDetail(p.name)}
+                    disabled={sunrise}
+                    scaleTo={0.985}
+                    style={{
+                      borderWidth: 1,
+                      borderColor: current ? 'rgba(61,115,201,0.25)' : 'rgba(23,32,28,0.05)',
+                      borderRadius: 22,
+                      paddingVertical: 15,
+                      paddingHorizontal: 16,
+                      backgroundColor: current ? colors.primaryTint : '#FFFFFF',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 13,
+                      minHeight: 48,
+                      opacity: isBusy ? 0.6 : 1,
+                    }}
+                  >
+                    <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: p.tint, alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={19} color={p.color} />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={{ fontSize: 16, fontWeight: '600', color: '#1B2430' }}>{p.name}</Text>
+                      <Text style={{ fontSize: 12.5, color: noteInk, marginTop: 4 }}>{note}</Text>
+                    </View>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: colors.inkStrong }}>{p.time.replace(' AM', ' am').replace(' PM', ' pm')}</Text>
+                    {!sunrise &&
+                      (done ? (
+                        <PressableScale
+                          onPress={() => handleToggle(p.name as PrayerName)}
+                          disabled={isBusy}
+                          style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: colors.success, alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <CheckIcon size={16} />
+                        </PressableScale>
+                      ) : (
+                        <PressableScale
+                          onPress={() => handleToggle(p.name as PrayerName)}
+                          disabled={isBusy}
+                          style={{ width: 44, height: 44, borderRadius: 14, borderWidth: 1.5, borderColor: 'rgba(23,32,28,0.16)', borderStyle: 'dashed', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: '#5C6673' }}>Log</Text>
+                        </PressableScale>
+                      ))}
+                  </PressableScale>
+                );
+              })}
+            </View>
+          )}
         </RiseIn>
 
         <RiseIn delay={200} style={{ paddingHorizontal: 20, marginTop: 16 }}>
@@ -178,6 +262,7 @@ export default function PrayerScreen() {
           </View>
         </RiseIn>
       </ScrollView>
+      <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />
     </View>
   );
 }

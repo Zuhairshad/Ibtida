@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppState } from '../../state/AppState';
+import { useAuth } from '../../state/AuthContext';
+import { createCircle, CirclePrivacy } from '../../services/community';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import PrimaryButton from '../../components/PrimaryButton';
 import SecondaryButton from '../../components/SecondaryButton';
+import Toast from '../../components/Toast';
 
 // §17 Circles are private groups. Permissions default to the most private
 // option and are chosen explicitly, never assumed.
@@ -21,18 +23,26 @@ const PRIVACY_LEVELS = [
 const GOAL_TEMPLATES = ['Fajr together this month', 'One juz a week', '100 durood a day', 'Morning adhkar streak'];
 
 export default function CircleNewScreen() {
-  const { addCircle } = useAppState();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [privacy, setPrivacy] = useState(0);
   const [goal, setGoal] = useState(0);
+  const [creating, setCreating] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const canCreate = name.trim().length > 1;
 
-  const onCreate = () => {
-    if (!canCreate) return;
-    addCircle(name.trim());
-    nav.circles();
+  const onCreate = async () => {
+    if (!canCreate || creating || !user) return;
+    setCreating(true);
+    try {
+      await createCircle(user.id, name.trim(), PRIVACY_LEVELS[privacy].label as CirclePrivacy);
+      nav.circles();
+    } catch {
+      setToast('Could not create your circle — try again.');
+      setCreating(false);
+    }
   };
 
   return (
@@ -127,9 +137,11 @@ export default function CircleNewScreen() {
           </Text>
         </View>
 
-        <PrimaryButton label="Create circle" onPress={onCreate} disabled={!canCreate} style={{ marginTop: 16 }} />
+        <PrimaryButton label="Create circle" onPress={onCreate} disabled={!canCreate} loading={creating} style={{ marginTop: 16 }} />
         {!canCreate && <Text style={{ fontSize: 12, color: colors.inkSecondary, textAlign: 'center', marginTop: 10 }}>Give your circle a name to continue.</Text>}
       </ScrollView>
+
+      <Toast message={toast} onDismiss={() => setToast(null)} />
     </ScreenFade>
   );
 }

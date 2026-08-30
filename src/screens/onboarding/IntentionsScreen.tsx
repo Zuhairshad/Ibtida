@@ -3,6 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppState } from '../../state/AppState';
+import { markOnboardingComplete, useAuth } from '../../state/AuthContext';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
@@ -20,7 +21,15 @@ const INTENTS = [
 
 export default function IntentionsScreen() {
   const { state, toggleIntent } = useAppState();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
+
+  // First-run-after-signup step — mark it seen (per-user, local) so the auth
+  // gate in App.tsx sends this user straight to Tabs next time.
+  const onContinue = () => {
+    if (user) markOnboardingComplete(user.id);
+    nav.home();
+  };
 
   return (
     <ScreenFade duration={350} style={{ backgroundColor: colors.bg, paddingTop: insets.top + 24, paddingHorizontal: 24, paddingBottom: insets.bottom + 20 }}>
@@ -64,7 +73,7 @@ export default function IntentionsScreen() {
         })}
       </ScrollView>
 
-      <PrimaryButton label="Continue" onPress={nav.home} style={{ marginTop: 20 }} />
+      <PrimaryButton label="Continue" onPress={onContinue} style={{ marginTop: 20 }} />
     </ScreenFade>
   );
 }

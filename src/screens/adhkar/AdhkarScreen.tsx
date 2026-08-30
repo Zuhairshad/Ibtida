@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 
+import { useAuth } from '../../state/AuthContext';
+import { listGoals } from '../../services/adhkar';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
@@ -11,8 +14,27 @@ import { SearchIcon, BeadsIcon, TimerIcon, ChevronRightIcon } from '../../theme/
 import { CATEGORIES } from '../../state/adhkarData';
 
 export default function AdhkarScreen() {
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = React.useState(0);
+  // Only the "Your goals" entry-point badge below reflects real data — the
+  // "Continue Evening Adhkar" card and Categories grid are static content
+  // library placeholders (adhkarData.ts), unrelated to the adhkar_goals /
+  // tasbeeh_sessions tables this domain owns, so they're left untouched.
+  const [activeGoals, setActiveGoals] = useState<number | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      let active = true;
+      listGoals(user.id)
+        .then((goals) => active && setActiveGoals(goals.filter((g) => !g.completedAt).length))
+        .catch(() => active && setActiveGoals(null));
+      return () => {
+        active = false;
+      };
+    }, [user])
+  );
 
   const onModeChange = (i: number) => {
     if (i === 1) nav.tasbeeh();
@@ -69,7 +91,9 @@ export default function AdhkarScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 14.5, fontWeight: '600', color: colors.inkStrong }}>Your goals</Text>
-              <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 3 }}>2 active</Text>
+              <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 3 }}>
+                {activeGoals === null ? 'View goals' : `${activeGoals} active`}
+              </Text>
             </View>
             <ChevronRightIcon />
           </PressableScale>

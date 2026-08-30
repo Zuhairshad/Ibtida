@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppState } from '../../state/AppState';
+import { useAuth } from '../../state/AuthContext';
+import { createGoal } from '../../services/adhkar';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
@@ -10,13 +11,45 @@ import PressableScale from '../../components/PressableScale';
 import Toggle from '../../components/Toggle';
 import PrimaryButton from '../../components/PrimaryButton';
 import SecondaryButton from '../../components/SecondaryButton';
+import Toast from '../../components/Toast';
 
 const FREQS = ['Every day', 'Weekdays', 'Custom'];
 
+// `range` (0=Today/1=Week/2=Month/3=Year, see supabase/migrations/0003_adhkar.sql)
+// has no picker in this form — the prototype only ever created "daily
+// target" goals — so every goal created here is stored range=0 ("Today").
+// Left as a documented simplification rather than adding a new selector UI.
+const DEFAULT_RANGE = 0;
+
 export default function GoalNewScreen() {
-  const { state, setFreq, targetUp, targetDown } = useAppState();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  // In-progress form state, local until "Create goal" is pressed — nothing
+  // here is persisted domain data on its own.
+  const [target, setTarget] = useState(100);
+  const [freq, setFreq] = useState(0);
   const [reminderOn, setReminderOn] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const targetUp = () => setTarget((t) => t + 10);
+  const targetDown = () => setTarget((t) => Math.max(t - 10, 10));
+
+  const onCreate = async () => {
+    if (!user) {
+      setToast('You need to be signed in to create a goal.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await createGoal(user.id, 'Durood Sharif', target, freq, DEFAULT_RANGE);
+      nav.goals();
+    } catch {
+      setToast('Could not create your goal. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <ScreenFade duration={280} style={{ backgroundColor: colors.bg, paddingTop: insets.top + 12, paddingHorizontal: 24, paddingBottom: insets.bottom + 20 }}>
@@ -34,7 +67,7 @@ export default function GoalNewScreen() {
           <View style={{ padding: 18, borderBottomWidth: 1, borderColor: colors.cardBorder, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <View>
               <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.09, textTransform: 'uppercase', color: colors.inkSecondary }}>Daily target</Text>
-              <Text style={{ fontSize: 17, fontWeight: '500', color: colors.inkStrong, marginTop: 9 }}>{state.newTarget}</Text>
+              <Text style={{ fontSize: 17, fontWeight: '500', color: colors.inkStrong, marginTop: 9 }}>{target}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <PressableScale onPress={targetDown} scaleTo={0.9} accessibilityRole="button" accessibilityLabel="Decrease daily target" style={{ width: 44, height: 44, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(23,32,28,0.1)', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
@@ -49,7 +82,7 @@ export default function GoalNewScreen() {
             <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.09, textTransform: 'uppercase', color: colors.inkSecondary, marginBottom: 12 }}>Repeat</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {FREQS.map((label, i) => {
-                const on = state.freq === i;
+                const on = freq === i;
                 return (
                   <PressableScale
                     key={label}
@@ -86,7 +119,9 @@ export default function GoalNewScreen() {
         </View>
       </ScrollView>
 
-      <PrimaryButton label="Create goal" onPress={nav.goals} style={{ marginTop: 16 }} />
+      <PrimaryButton label="Create goal" onPress={onCreate} loading={saving} style={{ marginTop: 16 }} />
+
+      <Toast message={toast} onDismiss={() => setToast(null)} />
     </ScreenFade>
   );
 }

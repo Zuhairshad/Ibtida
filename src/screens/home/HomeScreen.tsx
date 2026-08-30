@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppState, PRAYER_TIMES } from '../../state/AppState';
+import { useAppState, PRAYER_TIMES, PrayerName } from '../../state/AppState';
+import { useAuth } from '../../state/AuthContext';
+import * as PrayerService from '../../services/prayers';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
 import { HomeSkeleton } from '../../components/Skeleton';
+import Toast from '../../components/Toast';
 import PressableScale from '../../components/PressableScale';
 import ProgressRing from '../../components/ProgressRing';
 import StreakDotRow from '../../components/StreakDotRow';
@@ -24,16 +27,63 @@ const TILE_ICON: Record<string, React.ComponentType<{ size?: number; color?: str
 
 const STREAK_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
+const TODAY = PrayerService.todayISODate();
+
 export default function HomeScreen() {
-  const { state, togglePrayer } = useAppState();
+  const { state } = useAppState();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
+  const [logged, setLogged] = useState<Record<PrayerName, boolean> | null>(null);
+  const [busy, setBusy] = useState<Set<PrayerName>>(new Set());
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    PrayerService.getPrayerLog(user.id, TODAY)
+      .then((result) => {
+        if (!cancelled) setLogged(result);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setLogged((l) => l ?? PrayerService.emptyPrayerRecord(false));
+        setToastMsg(e instanceof Error ? e.message : 'Could not load today’s prayers.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const handleTilePress = useCallback(
+    async (name: PrayerName) => {
+      if (!user || busy.has(name)) return;
+      const prevVal = logged?.[name] ?? false;
+      setLogged((l) => (l ? { ...l, [name]: !prevVal } : l));
+      setBusy((b) => new Set(b).add(name));
+      try {
+        const next = await PrayerService.togglePrayer(user.id, name, TODAY);
+        setLogged((l) => (l ? { ...l, [name]: next } : l));
+      } catch (e) {
+        setLogged((l) => (l ? { ...l, [name]: prevVal } : l));
+        setToastMsg(e instanceof Error ? e.message : 'Could not update this prayer log.');
+      } finally {
+        setBusy((b) => {
+          const n = new Set(b);
+          n.delete(name);
+          return n;
+        });
+      }
+    },
+    [user, busy, logged]
+  );
+
   const dailyPrayers = PRAYER_TIMES.filter((p) => p.state !== 'sunrise');
-  const doneCount = dailyPrayers.filter((p) => state.logged[p.name as keyof typeof state.logged]).length;
+  const doneCount = logged ? dailyPrayers.filter((p) => logged[p.name as PrayerName]).length : 0;
   const dayPct = Math.round((doneCount / 5) * 100);
   const impactText = state.impact.toLocaleString('en-US');
 
-  if (state.booting) {
+  if (state.booting || !logged) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <HomeSkeleton />
@@ -171,13 +221,15 @@ export default function HomeScreen() {
         {/* Prayer tiles */}
         <RiseIn delay={250} style={{ paddingHorizontal: 20, marginTop: 12, flexDirection: 'row', gap: 7 }}>
           {dailyPrayers.map((p) => {
-            const done = !!state.logged[p.name as keyof typeof state.logged];
+            const name = p.name as PrayerName;
+            const done = !!logged[name];
             const current = p.name === 'Asr';
             const Icon = TILE_ICON[p.name] ?? SunIcon;
             return (
               <PressableScale
                 key={p.name}
-                onPress={() => togglePrayer(p.name as any)}
+                onPress={() => handleTilePress(name)}
+                disabled={busy.has(name)}
                 style={{
                   flex: 1,
                   minWidth: 0,
@@ -189,6 +241,7 @@ export default function HomeScreen() {
                   backgroundColor: current ? colors.successTintStrong : '#FFFFFF',
                   alignItems: 'center',
                   gap: 6,
+                  opacity: busy.has(name) ? 0.6 : 1,
                 }}
               >
                 <Icon size={20} color={current ? '#4CA96B' : '#8A93A0'} />
@@ -265,6 +318,7 @@ export default function HomeScreen() {
           </PressableScale>
         </RiseIn>
       </ScrollView>
+      <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />
     </View>
   );
 }

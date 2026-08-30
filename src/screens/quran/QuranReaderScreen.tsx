@@ -1,23 +1,59 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAppState } from '../../state/AppState';
+import { useAuth } from '../../state/AuthContext';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import Toast from '../../components/Toast';
+import { RowSkeleton } from '../../components/Skeleton';
 import { ChevronLeftIcon, BookmarkIcon, PlayIcon, MoonIcon } from '../../theme/icons';
 import { AYAT } from '../../state/quranData';
+import { getReaderSettings, listBookmarks, setArabicSize, toggleBookmark, toggleNight, toggleTranslation } from '../../services/quran';
+
+// This screen only ever shows Al-Baqarah (per the source design's mock
+// content) — its surah number for bookmark reads/writes.
+const AL_BAQARAH_SURAH_NUMBER = 2;
 
 export default function QuranReaderScreen() {
-  const { state, setArabicSize, toggleTranslation, toggleNight, toggleBookmark } = useAppState();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [panel, setPanel] = useState<'size' | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  const night = state.quran.night;
+  // null = not loaded yet, lets "loading" be derived at render time instead
+  // of a separate setState called synchronously inside the fetch effect
+  // (same pattern as PrayerScreen's `loadedDate`/`loadingLog`).
+  const [settings, setSettings] = useState<{ arabicSize: number; showTranslation: boolean; night: boolean } | null>(null);
+  const [bookmarked, setBookmarked] = useState<boolean | null>(null);
+  const loading = settings === null || bookmarked === null;
+
+  useEffect(() => {
+    if (!user) return;
+    let mounted = true;
+    Promise.all([getReaderSettings(user.id), listBookmarks(user.id)])
+      .then(([loadedSettings, bookmarks]) => {
+        if (!mounted) return;
+        setSettings(loadedSettings);
+        setBookmarked(bookmarks.includes(AL_BAQARAH_SURAH_NUMBER));
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setSettings((s) => s ?? { arabicSize: 34, showTranslation: true, night: false });
+        setBookmarked((b) => b ?? false);
+        setToast("Couldn't load your reader settings.");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
+  const arabicSize = settings?.arabicSize ?? 34;
+  const showTranslation = settings?.showTranslation ?? true;
+  const night = settings?.night ?? false;
+
   // Night reading theme per §18 — a warm dark ground, not an inverted grey.
   const bg = night ? '#141A18' : '#FBFAF6';
   const cardBg = night ? '#1D2523' : '#FFFFFF';
@@ -25,12 +61,61 @@ export default function QuranReaderScreen() {
   const subInk = night ? 'rgba(239,243,240,0.6)' : colors.inkSecondary;
   const border = night ? 'rgba(239,243,240,0.1)' : 'rgba(23,32,28,0.05)';
 
-  const bookmarked = state.bookmarks.includes(2);
+  const onBookmark = useCallback(async () => {
+    if (!user || bookmarked === null) return;
+    const wasMarked = bookmarked;
+    setBookmarked(!wasMarked);
+    setToast(wasMarked ? 'Bookmark removed from Al-Baqarah.' : 'Al-Baqarah bookmarked.');
+    try {
+      await toggleBookmark(user.id, AL_BAQARAH_SURAH_NUMBER);
+    } catch {
+      setBookmarked(wasMarked);
+      setToast("Couldn't update bookmark. Try again.");
+    }
+  }, [user, bookmarked]);
 
-  const onBookmark = () => {
-    toggleBookmark(2);
-    setToast(bookmarked ? 'Bookmark removed from Al-Baqarah.' : 'Al-Baqarah bookmarked.');
-  };
+  const adjustArabicSize = useCallback(
+    async (delta: number) => {
+      if (!user || settings === null) return;
+      const prev = settings.arabicSize;
+      const optimistic = Math.min(Math.max(prev + delta, 24), 48);
+      setSettings((s) => (s ? { ...s, arabicSize: optimistic } : s));
+      try {
+        const persisted = await setArabicSize(user.id, prev + delta);
+        setSettings((s) => (s ? { ...s, arabicSize: persisted } : s));
+      } catch {
+        setSettings((s) => (s ? { ...s, arabicSize: prev } : s));
+        setToast("Couldn't update text size.");
+      }
+    },
+    [user, settings]
+  );
+
+  const onToggleTranslation = useCallback(async () => {
+    if (!user || settings === null) return;
+    const prev = settings.showTranslation;
+    setSettings((s) => (s ? { ...s, showTranslation: !prev } : s));
+    try {
+      const next = await toggleTranslation(user.id);
+      setSettings((s) => (s ? { ...s, showTranslation: next } : s));
+    } catch {
+      setSettings((s) => (s ? { ...s, showTranslation: prev } : s));
+      setToast("Couldn't update translation setting.");
+    }
+  }, [user, settings]);
+
+  const onToggleNight = useCallback(async () => {
+    if (!user || settings === null) return;
+    const prev = settings.night;
+    setSettings((s) => (s ? { ...s, night: !prev } : s));
+    try {
+      const next = await toggleNight(user.id);
+      setSettings((s) => (s ? { ...s, night: next } : s));
+    } catch {
+      setSettings((s) => (s ? { ...s, night: prev } : s));
+      setToast("Couldn't update night mode.");
+    }
+  }, [user, settings]);
 
   return (
     <ScreenFade duration={280} style={{ backgroundColor: bg }}>
@@ -45,55 +130,61 @@ export default function QuranReaderScreen() {
         </PressableScale>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 20, paddingBottom: 20 }}>
-        {AYAT.map((a) => (
-          <View key={a.n} style={{ borderWidth: 1, borderColor: border, borderRadius: 24, padding: 22, backgroundColor: cardBg, marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View style={{ backgroundColor: night ? 'rgba(239,243,240,0.08)' : colors.bgTint, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 10 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: ink }}>2:{a.n}</Text>
+      {loading ? (
+        <View style={{ paddingHorizontal: 22, paddingTop: 20 }}>
+          <RowSkeleton rows={3} />
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 20, paddingBottom: 20 }}>
+          {AYAT.map((a) => (
+            <View key={a.n} style={{ borderWidth: 1, borderColor: border, borderRadius: 24, padding: 22, backgroundColor: cardBg, marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ backgroundColor: night ? 'rgba(239,243,240,0.08)' : colors.bgTint, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 10 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: ink }}>2:{a.n}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                  <PressableScale onPress={onBookmark} accessibilityRole="button" accessibilityLabel={`Bookmark ayah ${a.n}`} scaleTo={0.85} style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}>
+                    <BookmarkIcon size={16} color={subInk} />
+                  </PressableScale>
+                  <PressableScale
+                    onPress={() => setToast('Recitation audio needs a licensed reciter source — not available yet.')}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Play ayah ${a.n}`}
+                    scaleTo={0.85}
+                    style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <PlayIcon size={16} color={subInk} />
+                  </PressableScale>
+                </View>
               </View>
-              <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-                <PressableScale onPress={onBookmark} accessibilityRole="button" accessibilityLabel={`Bookmark ayah ${a.n}`} scaleTo={0.85} style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}>
-                  <BookmarkIcon size={16} color={subInk} />
-                </PressableScale>
-                <PressableScale
-                  onPress={() => setToast('Recitation audio needs a licensed reciter source — not available yet.')}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Play ayah ${a.n}`}
-                  scaleTo={0.85}
-                  style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <PlayIcon size={16} color={subInk} />
-                </PressableScale>
+              <View style={{ marginTop: 18, padding: 20, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: night ? 'rgba(239,243,240,0.18)' : 'rgba(23,32,28,0.14)', alignItems: 'center' }}>
+                {/* Arabic size control drives this block's type scale. */}
+                <Text style={{ fontSize: Math.round(arabicSize * 0.38), lineHeight: arabicSize * 0.6, color: subInk, textAlign: 'center' }}>
+                  Arabic text loads from the licensed Mushaf source
+                </Text>
+                <Text style={{ fontSize: 11.5, lineHeight: 17, color: subInk, marginTop: 7, textAlign: 'center', opacity: 0.8 }}>Not rendered here — scripture is never generated</Text>
               </View>
+              {showTranslation && (
+                <>
+                  <Text style={{ fontSize: 15.5, lineHeight: 25, color: ink, marginTop: 16 }}>{a.translationState}</Text>
+                  <Text style={{ fontSize: 11.5, color: subInk, marginTop: 12 }}>{a.source}</Text>
+                </>
+              )}
             </View>
-            <View style={{ marginTop: 18, padding: 20, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: night ? 'rgba(239,243,240,0.18)' : 'rgba(23,32,28,0.14)', alignItems: 'center' }}>
-              {/* Arabic size control drives this block's type scale. */}
-              <Text style={{ fontSize: Math.round(state.quran.arabicSize * 0.38), lineHeight: state.quran.arabicSize * 0.6, color: subInk, textAlign: 'center' }}>
-                Arabic text loads from the licensed Mushaf source
-              </Text>
-              <Text style={{ fontSize: 11.5, lineHeight: 17, color: subInk, marginTop: 7, textAlign: 'center', opacity: 0.8 }}>Not rendered here — scripture is never generated</Text>
-            </View>
-            {state.quran.showTranslation && (
-              <>
-                <Text style={{ fontSize: 15.5, lineHeight: 25, color: ink, marginTop: 16 }}>{a.translationState}</Text>
-                <Text style={{ fontSize: 11.5, color: subInk, marginTop: 12 }}>{a.source}</Text>
-              </>
-            )}
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      )}
 
       {/* Text-size panel, opened by the Text size control below. */}
-      {panel === 'size' && (
+      {panel === 'size' && !loading && (
         <View style={{ paddingHorizontal: 22, paddingVertical: 16, backgroundColor: cardBg, borderTopWidth: 1, borderColor: border }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ fontSize: 13, fontWeight: '600', color: ink }}>Arabic text size</Text>
-            <Text style={{ fontSize: 13, color: subInk }}>{state.quran.arabicSize}px</Text>
+            <Text style={{ fontSize: 13, color: subInk }}>{arabicSize}px</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
             <PressableScale
-              onPress={() => setArabicSize(state.quran.arabicSize - 2)}
+              onPress={() => adjustArabicSize(-2)}
               accessibilityRole="button"
               accessibilityLabel="Decrease Arabic text size"
               scaleTo={0.94}
@@ -102,7 +193,7 @@ export default function QuranReaderScreen() {
               <Text style={{ fontSize: 18, color: ink }}>A−</Text>
             </PressableScale>
             <PressableScale
-              onPress={() => setArabicSize(state.quran.arabicSize + 2)}
+              onPress={() => adjustArabicSize(2)}
               accessibilityRole="button"
               accessibilityLabel="Increase Arabic text size"
               scaleTo={0.94}
@@ -127,18 +218,18 @@ export default function QuranReaderScreen() {
         </PressableScale>
 
         <PressableScale
-          onPress={toggleTranslation}
+          onPress={onToggleTranslation}
           accessibilityRole="switch"
-          accessibilityState={{ checked: state.quran.showTranslation }}
+          accessibilityState={{ checked: showTranslation }}
           accessibilityLabel="Show translation"
           scaleTo={0.97}
-          style={{ flex: 1, minHeight: 48, borderWidth: 1, borderColor: state.quran.showTranslation ? colors.primary : border, backgroundColor: cardBg, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}
+          style={{ flex: 1, minHeight: 48, borderWidth: 1, borderColor: showTranslation ? colors.primary : border, backgroundColor: cardBg, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}
         >
-          <Text style={{ fontSize: 13.5, fontWeight: '500', color: state.quran.showTranslation ? colors.primary : subInk }}>Translation</Text>
+          <Text style={{ fontSize: 13.5, fontWeight: '500', color: showTranslation ? colors.primary : subInk }}>Translation</Text>
         </PressableScale>
 
         <PressableScale
-          onPress={toggleNight}
+          onPress={onToggleNight}
           accessibilityRole="switch"
           accessibilityState={{ checked: night }}
           accessibilityLabel="Night reading theme"

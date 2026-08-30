@@ -47,12 +47,19 @@ Intentions, Prayer detail (sheet), Adhkar session, Goal new, Goal complete,
 Quran reader, Focus setup, Focus active, Search, Notifications, New circle,
 Error/offline.
 
+## Backend
+
+Ibtida's Supabase backend (schema, RLS policies, client setup) lives in
+[`supabase/README.md`](./supabase/README.md); copy [`.env.example`](./.env.example)
+to `.env` and fill in your project's URL/anon key to run against it. The
+project owner applies the migrations themselves (see that README) — nothing
+here connects to a live project on its own.
+
 ## Known gaps vs. the full design brief
 
 The source `.dc.html` is a static prototype; this port focuses on visual/interaction fidelity and in-memory state. Not yet implemented (flagged in the original design conversation as needing native infrastructure or further design passes):
 
 - Real dark mode (system-aware palette)
-- Persistence (AsyncStorage) — state currently resets on reload
 - Push notifications / per-category notification scheduling
 - Offline-first caching (service-worker equivalent)
 - Qibla via live device orientation (currently shows the saved-location bearing)

@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { RootStackParamList } from '../../navigation/types';
 import { useAppState, PRAYER_TIMES, PrayerName } from '../../state/AppState';
+import { useAuth } from '../../state/AuthContext';
+import * as PrayerService from '../../services/prayers';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import BottomSheetModal from '../../components/BottomSheetModal';
@@ -11,18 +13,55 @@ import PressableScale from '../../components/PressableScale';
 import Toggle from '../../components/Toggle';
 import PrimaryButton from '../../components/PrimaryButton';
 import SecondaryButton from '../../components/SecondaryButton';
+import { SkeletonBlock } from '../../components/Skeleton';
+import Toast from '../../components/Toast';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PrayerDetail'>;
 
 const LOG_MODES = ['Missed', 'On time', "In jama’ah"];
 
+// This sheet has no date param (route only carries `prayerName`) — it always
+// reads/writes today's log, same as AppState's old single "today" snapshot.
+const today = PrayerService.todayISODate();
+
 export default function PrayerDetailScreen({ route }: Props) {
   const { prayerName } = route.params;
-  const { state, setLogMode, togglePrayer, toggleAdhan } = useAppState();
+  const { state, setLogMode } = useAppState();
+  const { user } = useAuth();
 
   const prayer = PRAYER_TIMES.find((p) => p.name === prayerName) ?? PRAYER_TIMES[3];
   const name = prayer.name as PrayerName;
-  const isLogged = !!state.logged[name];
+
+  const [isLogged, setIsLogged] = useState(false);
+  const [adhanOn, setAdhanOn] = useState(true);
+  const [marking, setMarking] = useState(false);
+  const [adhanBusy, setAdhanBusy] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  // Which prayer's data has actually loaded — lets "loading" be derived at
+  // render time (`loadedName !== name`) instead of a separate setState called
+  // synchronously inside the fetch effect below.
+  const [loadedName, setLoadedName] = useState<PrayerName | null>(null);
+  const loading = loadedName !== name;
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    Promise.all([PrayerService.getPrayerLog(user.id, today), PrayerService.getAdhanSettings(user.id)])
+      .then(([log, adhan]) => {
+        if (cancelled) return;
+        setLoadedName(name);
+        setIsLogged(!!log[name]);
+        setAdhanOn(!!adhan[name]);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setLoadedName(name);
+        setToastMsg(e instanceof Error ? e.message : 'Could not load this prayer.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, name]);
 
   // Status badge reflects this prayer's real state, not a hardcoded "Current".
   const status = isLogged
@@ -33,9 +72,34 @@ export default function PrayerDetailScreen({ route }: Props) {
         ? { label: 'Missed', bg: 'rgba(201,107,107,0.13)', ink: colors.dangerInk }
         : { label: 'Upcoming', bg: colors.bgTint, ink: colors.inkMuted };
 
-  const onMark = () => {
-    togglePrayer(name);
-    nav.back();
+  const onMark = async () => {
+    if (!user || marking) return;
+    setMarking(true);
+    try {
+      const next = await PrayerService.togglePrayer(user.id, name, today);
+      setIsLogged(next);
+      nav.back();
+    } catch (e) {
+      setToastMsg(e instanceof Error ? e.message : 'Could not update this prayer log.');
+    } finally {
+      setMarking(false);
+    }
+  };
+
+  const onToggleAdhan = async () => {
+    if (!user || adhanBusy) return;
+    const prev = adhanOn;
+    setAdhanOn(!prev);
+    setAdhanBusy(true);
+    try {
+      const next = await PrayerService.toggleAdhan(user.id, name);
+      setAdhanOn(next);
+    } catch (e) {
+      setAdhanOn(prev);
+      setToastMsg(e instanceof Error ? e.message : 'Could not update adhan notification.');
+    } finally {
+      setAdhanBusy(false);
+    }
   };
 
   return (
@@ -47,9 +111,13 @@ export default function PrayerDetailScreen({ route }: Props) {
             {prayer.time} · ends {prayer.endsAt}
           </Text>
         </View>
-        <View style={{ backgroundColor: status.bg, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 12 }}>
-          <Text style={{ fontSize: 12, fontWeight: '500', color: status.ink }}>{status.label}</Text>
-        </View>
+        {loading ? (
+          <SkeletonBlock width={64} height={30} radius={12} />
+        ) : (
+          <View style={{ backgroundColor: status.bg, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 12 }}>
+            <Text style={{ fontSize: 12, fontWeight: '500', color: status.ink }}>{status.label}</Text>
+          </View>
+        )}
       </View>
 
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 20 }}>
@@ -88,19 +156,33 @@ export default function PrayerDetailScreen({ route }: Props) {
       </View>
 
       <PressableScale
-        onPress={() => toggleAdhan(name)}
+        onPress={onToggleAdhan}
+        disabled={loading || adhanBusy}
         scaleTo={0.99}
         accessibilityRole="switch"
-        accessibilityState={{ checked: state.adhan[name] }}
+        accessibilityState={{ checked: adhanOn }}
         accessibilityLabel="Adhan notification"
-        style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 20, backgroundColor: '#FFFFFF', paddingVertical: 15, paddingHorizontal: 16 }}
+        style={{
+          marginTop: 10,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
+          borderRadius: 20,
+          backgroundColor: '#FFFFFF',
+          paddingVertical: 15,
+          paddingHorizontal: 16,
+          opacity: loading || adhanBusy ? 0.6 : 1,
+        }}
       >
         <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkStrong }}>Adhan notification</Text>
-        <Toggle on={state.adhan[name]} />
+        <Toggle on={adhanOn} />
       </PressableScale>
 
-      <PrimaryButton label={isLogged ? 'Remove log' : 'Mark as prayed'} onPress={onMark} style={{ marginTop: 16 }} />
+      <PrimaryButton label={isLogged ? 'Remove log' : 'Mark as prayed'} onPress={onMark} disabled={loading} loading={marking} style={{ marginTop: 16 }} />
       <SecondaryButton label="Cancel" onPress={nav.back} style={{ marginTop: 2 }} />
+      <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />
     </BottomSheetModal>
   );
 }
