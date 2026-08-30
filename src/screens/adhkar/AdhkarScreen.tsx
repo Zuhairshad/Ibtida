@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -16,6 +16,8 @@ import { CATEGORIES } from '../../state/adhkarData';
 export default function AdhkarScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = (screenWidth - 48 - 10) / 2; // 24px padding each side, 10px gap
   const [mode, setMode] = React.useState(0);
   // Only the "Your goals" entry-point badge below reflects real data — the
   // "Continue Evening Adhkar" card and Categories grid are static content
@@ -60,20 +62,22 @@ export default function AdhkarScreen() {
         </RiseIn>
 
         <RiseIn delay={80} style={{ paddingHorizontal: 24, marginTop: 18 }}>
-          <PressableScale
-            onPress={nav.adhkarSession}
-            style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 28, padding: 22, backgroundColor: '#FBF8F1' }}
-          >
-            <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.goldInk }}>Continue</Text>
-            <Text style={{ fontSize: 22, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.02, marginTop: 10 }}>Evening Adhkar</Text>
-            <Text style={{ fontSize: 13.5, color: colors.inkMuted, marginTop: 7 }}>20 adhkar · about 8 minutes</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 }}>
-              <View style={{ height: 5, flex: 1, borderRadius: 3, backgroundColor: 'rgba(23,32,28,0.08)', overflow: 'hidden' }}>
-                <View style={{ height: '100%', width: '30%', backgroundColor: colors.success, borderRadius: 3 }} />
-              </View>
-              <Text style={{ fontSize: 12.5, fontWeight: '600', color: colors.inkMuted }}>30% · 6 / 20</Text>
+          {activeGoals !== null && activeGoals > 0 ? (
+            <PressableScale
+              onPress={nav.goals}
+              style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 28, padding: 22, backgroundColor: '#FBF8F1' }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.goldInk }}>Continue</Text>
+              <Text style={{ fontSize: 22, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.02, marginTop: 10 }}>
+                {activeGoals === 1 ? '1 active goal' : `${activeGoals} active goals`}
+              </Text>
+              <Text style={{ fontSize: 13.5, color: colors.inkMuted, marginTop: 7 }}>Tap to view your progress</Text>
+            </PressableScale>
+          ) : (
+            <View style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 28, padding: 22, backgroundColor: '#FBF8F1', alignItems: 'center' }}>
+              <Text style={{ fontSize: 14, color: colors.inkMuted }}>No active session</Text>
             </View>
-          </PressableScale>
+          )}
         </RiseIn>
 
         {/* Goals live in this tab group, so they need an entry point here —
@@ -122,7 +126,7 @@ export default function AdhkarScreen() {
               <PressableScale
                 key={c.name}
                 onPress={nav.adhkarSession}
-                style={{ width: '47.5%', borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 22, padding: 16, backgroundColor: '#FFFFFF', minHeight: 120, justifyContent: 'space-between', gap: 12 }}
+                style={{ width: cardWidth, borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 22, padding: 16, backgroundColor: '#FFFFFF', minHeight: 120, justifyContent: 'space-between', gap: 12 }}
               >
                 <Text style={{ fontFamily: 'NotoNaskhArabic_500Medium', fontSize: 16, color: colors.goldInk, writingDirection: 'rtl' }}>{c.ar}</Text>
                 <View>

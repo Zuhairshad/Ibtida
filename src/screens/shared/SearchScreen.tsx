@@ -1,88 +1,121 @@
-import React, { useMemo, useState } from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { search, quickSearch, type SearchResult, type ContentType } from '../../lib/kalimatApi';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import EmptyState from '../../components/EmptyState';
+import SegmentedControl from '../../components/SegmentedControl';
 import { SearchIcon, ChevronRightIcon, BookIcon, BeadsIcon, AdhkarIcon } from '../../theme/icons';
-import { CATEGORIES, GOALS } from '../../state/adhkarData';
-import { SURAHS } from '../../state/quranData';
 
-type Result = { kind: 'Adhkar' | 'Quran' | 'Goal'; title: string; sub: string; go: () => void };
+const CONTENT_TYPES: { label: string; value: ContentType }[] = [
+  { label: 'Quran', value: 'quran' },
+  { label: 'Hadith', value: 'sunnah' },
+  { label: 'Azkar', value: 'azkar' },
+];
 
-// §20 Global search — searches Adhkar categories, Quran surahs and personal
-// goals. Matching is transliteration-and-Arabic aware: each item carries its
-// Arabic string, and queries are normalised so "istighfar" finds
-// "الاستغفار" via the transliteration index below.
-const TRANSLIT: Record<string, string[]> = {
-  Morning: ['sabah', 'subh'],
-  Evening: ['masa', 'masaa'],
-  'After Salah': ['salah', 'salat', 'namaz'],
-  Protection: ['hifz', 'hifdh'],
-  Forgiveness: ['istighfar', 'astaghfirullah'],
-  Gratitude: ['shukr', 'shukur'],
-  'Before Sleep': ['nawm', 'sleep'],
-  Travel: ['safar'],
-  'Al-Fatihah': ['fatiha', 'fatihah'],
-  'Al-Baqarah': ['baqara', 'baqarah'],
-  'Ali ‘Imran': ['imran', 'aal-e-imran'],
-  'An-Nisa': ['nisa', 'nisaa'],
-  'Al-Kahf': ['kahf'],
-  'Ya-Sin': ['yasin', 'yaseen'],
-  'Durood Sharif': ['durood', 'salawat', 'darood'],
-  'Morning Adhkar': ['sabah', 'morning'],
-};
+const SUGGESTIONS = ['Patience', 'Surah Al-Kahf', 'Istighfar', 'Kindness', 'Tawakkul', 'Morning Adhkar'];
 
-function normalise(s: string) {
-  return s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '') // strip Latin diacritics
-    .replace(/[ً-ْ]/g, '') // strip Arabic harakat
-    .replace(/[‘’'-]/g, '');
+function typeLabel(type: SearchResult['type']): string {
+  switch (type) {
+    case 'quran_verse': return 'Verse';
+    case 'quran_chapter': return 'Surah';
+    case 'quran_range': return 'Verses';
+    case 'quran_page': return 'Page';
+    case 'quran_juz': return 'Juz';
+    case 'hadith': return 'Hadith';
+    case 'zikr': return 'Dhikr';
+    default: return 'Result';
+  }
 }
 
-function matches(query: string, ...fields: (string | undefined)[]) {
-  const q = normalise(query);
-  if (!q) return false;
-  return fields.some((f) => f && normalise(f).includes(q));
+function resultIcon(type: SearchResult['type']) {
+  if (type === 'hadith') return <BeadsIcon size={19} color="#3B7A52" />;
+  if (type === 'zikr') return <AdhkarIcon size={19} color={colors.goldInk} />;
+  return <BookIcon size={19} color="#2F5CA3" />;
+}
+
+function resultTint(type: SearchResult['type']) {
+  if (type === 'hadith') return colors.successTint;
+  if (type === 'zikr') return colors.goldTint;
+  return colors.primaryTint;
+}
+
+function resultTitle(r: SearchResult): string {
+  if (r.type === 'quran_chapter') return r.translatedText ?? r.id;
+  if (r.type === 'hadith') return r.chapterEnglish ?? 'Hadith';
+  if (r.type === 'zikr') return r.englishTitle ?? r.title ?? 'Dhikr';
+  return r.id;
+}
+
+function resultSubtitle(r: SearchResult): string {
+  if (r.type === 'hadith') {
+    const parts: string[] = [];
+    if (r.sourceBook) parts.push(r.sourceBook.charAt(0).toUpperCase() + r.sourceBook.slice(1));
+    if (r.hadithNumber) parts.push(`#${r.hadithNumber}`);
+    if (r.gradeEn) parts.push(r.gradeEn);
+    return parts.join(' · ');
+  }
+  const text = r.translatedText ?? r.text ?? '';
+  return text.length > 80 ? text.slice(0, 80) + '…' : text;
 }
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
+  const [tabIndex, setTabIndex] = useState(0);
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const results = useMemo<Result[]>(() => {
-    if (!query.trim()) return [];
-    const out: Result[] = [];
+  const contentType = CONTENT_TYPES[tabIndex].value;
 
-    CATEGORIES.forEach((c) => {
-      if (matches(query, c.name, c.ar, ...(TRANSLIT[c.name] ?? []))) {
-        out.push({ kind: 'Adhkar', title: c.name, sub: `${c.n} adhkar · ${c.mins} min`, go: nav.adhkarSession });
+  const runSearch = useCallback(
+    async (q: string, ct: ContentType) => {
+      if (!q.trim()) { setResults([]); setError(null); return; }
+      abortRef.current?.abort();
+      abortRef.current = new AbortController();
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await search(q, {
+          contentType: ct,
+          numResults: 15,
+          getText: true,
+          getMetadata: ct === 'sunnah',
+        });
+        setResults(res);
+      } catch (e: unknown) {
+        if ((e as Error)?.name !== 'AbortError') {
+          setError('Search failed. Check your connection.');
+          setResults([]);
+        }
+      } finally {
+        setLoading(false);
       }
-    });
-    SURAHS.forEach((s) => {
-      if (matches(query, s.name, s.ar, String(s.n), ...(TRANSLIT[s.name] ?? []))) {
-        out.push({ kind: 'Quran', title: s.name, sub: s.meta, go: nav.quranReader });
-      }
-    });
-    GOALS.forEach((g) => {
-      if (matches(query, g.name, ...(TRANSLIT[g.name] ?? []))) {
-        out.push({ kind: 'Goal', title: g.name, sub: `${g.freq} · ${g.progress}`, go: nav.goals });
-      }
-    });
-    return out;
-  }, [query]);
+    },
+    []
+  );
 
-  const iconFor = (kind: Result['kind']) =>
-    kind === 'Quran' ? <BookIcon size={19} color="#2F5CA3" /> : kind === 'Goal' ? <BeadsIcon size={19} color="#3B7A52" /> : <AdhkarIcon size={19} color={colors.goldInk} />;
-  const tintFor = (kind: Result['kind']) => (kind === 'Quran' ? colors.primaryTint : kind === 'Goal' ? colors.successTint : colors.goldTint);
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => runSearch(query, contentType), 400);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query, contentType, runSearch]);
+
+  const onTabChange = (i: number) => {
+    setTabIndex(i);
+    setResults([]);
+  };
 
   return (
     <ScreenFade duration={280} style={{ backgroundColor: colors.bg, paddingTop: insets.top + 12 }}>
+      {/* Search bar */}
       <View style={{ paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 12, paddingHorizontal: 15, borderRadius: 14, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: colors.cardBorder, minHeight: 48 }}>
           <SearchIcon />
@@ -90,61 +123,117 @@ export default function SearchScreen() {
             value={query}
             onChangeText={setQuery}
             autoFocus
-            placeholder="Search Quran, adhkar, duas and goals"
+            placeholder="Search Quran, Hadith, adhkar…"
             placeholderTextColor="#8A928C"
             accessibilityLabel="Search"
             returnKeyType="search"
             style={{ flex: 1, fontSize: 14.5, color: colors.inkStrong, padding: 0 }}
           />
+          {loading && <ActivityIndicator size="small" color={colors.inkMuted} />}
         </View>
         <PressableScale onPress={nav.back} scaleTo={1} accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center' }}>
           <Text style={{ fontSize: 14, fontWeight: '500', color: colors.primary }}>Cancel</Text>
         </PressableScale>
       </View>
 
+      {/* Content type tabs */}
+      <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
+        <SegmentedControl
+          options={CONTENT_TYPES.map((t) => t.label)}
+          selected={tabIndex}
+          onChange={onTabChange}
+        />
+      </View>
+
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        {!query.trim() ? (
+        {/* Empty state — no query yet */}
+        {!query.trim() && (
           <View style={{ marginTop: 8 }}>
             <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary, marginBottom: 12 }}>Try searching</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {['Istighfar', 'Al-Kahf', 'Durood', 'Evening', 'Travel'].map((s) => (
+              {SUGGESTIONS.map((s) => (
                 <PressableScale key={s} onPress={() => setQuery(s)} scaleTo={0.94} accessibilityRole="button" style={{ backgroundColor: colors.bgTint, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12 }}>
                   <Text style={{ fontSize: 13, fontWeight: '500', color: colors.inkStrong }}>{s}</Text>
                 </PressableScale>
               ))}
             </View>
             <Text style={{ fontSize: 12.5, lineHeight: 20, color: colors.inkSecondary, marginTop: 20 }}>
-              Search works in English, Arabic and transliteration — “istighfar” finds الاستغفار.
+              AI-powered semantic search — "patience" finds verses about صبر even if the word doesn't appear literally.
             </Text>
           </View>
-        ) : results.length === 0 ? (
+        )}
+
+        {/* Error */}
+        {error && (
           <View style={{ marginTop: 20 }}>
-            <EmptyState icon={<SearchIcon size={22} color={colors.inkMuted} />} title="Nothing matched" subtitle={`No adhkar, surah or goal matches “${query}”.`} actionLabel="Clear search" onAction={() => setQuery('')} />
+            <EmptyState icon={<SearchIcon size={22} color={colors.inkMuted} />} title="Search unavailable" subtitle={error} />
           </View>
-        ) : (
+        )}
+
+        {/* No results */}
+        {!loading && !error && query.trim() && results.length === 0 && (
+          <View style={{ marginTop: 20 }}>
+            <EmptyState
+              icon={<SearchIcon size={22} color={colors.inkMuted} />}
+              title="Nothing found"
+              subtitle={`No ${CONTENT_TYPES[tabIndex].label.toLowerCase()} results for "${query}".`}
+              actionLabel="Clear search"
+              onAction={() => setQuery('')}
+            />
+          </View>
+        )}
+
+        {/* Results */}
+        {results.length > 0 && (
           <View style={{ gap: 8 }}>
             <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginBottom: 4 }}>
               {results.length} result{results.length === 1 ? '' : 's'}
             </Text>
             {results.map((r, i) => (
               <PressableScale
-                key={`${r.kind}-${r.title}-${i}`}
-                onPress={r.go}
+                key={`${r.id}-${i}`}
+                onPress={nav.quranReader}
                 scaleTo={0.985}
                 accessibilityRole="button"
-                accessibilityLabel={`${r.title}, ${r.kind}`}
-                style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 13, minHeight: 48 }}
+                accessibilityLabel={resultTitle(r)}
+                style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 20, padding: 16, backgroundColor: '#FFFFFF', gap: 10, minHeight: 48 }}
               >
-                <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: tintFor(r.kind), alignItems: 'center', justifyContent: 'center' }}>{iconFor(r.kind)}</View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={{ fontSize: 15.5, fontWeight: '600', color: colors.inkStrong }} numberOfLines={1}>
-                    {r.title}
-                  </Text>
-                  <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 4 }} numberOfLines={1}>
-                    {r.kind} · {r.sub}
-                  </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: resultTint(r.type), alignItems: 'center', justifyContent: 'center' }}>
+                    {resultIcon(r.type)}
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: colors.inkStrong, flex: 1 }} numberOfLines={1}>
+                        {resultTitle(r)}
+                      </Text>
+                      <View style={{ backgroundColor: colors.bgTint, paddingVertical: 3, paddingHorizontal: 8, borderRadius: 8 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: colors.inkSecondary }}>{typeLabel(r.type)}</Text>
+                      </View>
+                    </View>
+                    <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 3 }} numberOfLines={1}>
+                      {resultSubtitle(r)}
+                    </Text>
+                  </View>
+                  <ChevronRightIcon />
                 </View>
-                <ChevronRightIcon />
+
+                {/* Arabic text */}
+                {r.text && (
+                  <Text
+                    style={{ fontSize: 18, lineHeight: 32, color: colors.inkStrong, textAlign: 'right', fontFamily: 'NotoNaskhArabic_400Regular' }}
+                    numberOfLines={3}
+                  >
+                    {r.text}
+                  </Text>
+                )}
+
+                {/* Translation */}
+                {r.translatedText && r.type !== 'quran_chapter' && (
+                  <Text style={{ fontSize: 13, lineHeight: 20, color: colors.inkSecondary }} numberOfLines={4}>
+                    {r.type === 'hadith' && r.matnEn ? r.matnEn : r.translatedText}
+                  </Text>
+                )}
               </PressableScale>
             ))}
           </View>

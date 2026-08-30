@@ -84,13 +84,14 @@ export default function PrayerDetailScreen({ route }: Props) {
   // a confirmed 'current' or 'done' (missed-so-far, i.e. qada) window does.
   const upcoming = classification === null || classification === 'upcoming';
 
-  const timeLabel = times && calcSettings ? formatPrayerTime(times[name.toLowerCase() as 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'], calcSettings.timezone) : '—:—';
+  const deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timeLabel = times ? formatPrayerTime(times[name.toLowerCase() as 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'], deviceTz) : '—:—';
   const endsAtLabel = (() => {
-    if (!times || !calcSettings) return '—:—';
+    if (!times) return '—:—';
     const order: (keyof typeof times)[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
     const idx = order.indexOf(name.toLowerCase() as keyof typeof times);
     const nextKey = order[idx + 1];
-    return nextKey ? formatPrayerTime(times[nextKey], calcSettings.timezone) : formatPrayerTime(times.fajr, calcSettings.timezone);
+    return nextKey ? formatPrayerTime(times[nextKey], deviceTz) : formatPrayerTime(times.fajr, deviceTz);
   })();
 
   useEffect(() => {

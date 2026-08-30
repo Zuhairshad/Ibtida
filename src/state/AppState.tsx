@@ -200,9 +200,21 @@ export function useAppState() {
 }
 
 export function countdownText(secs: number) {
-  return `${Math.floor(secs / 60)}m ${String(secs % 60).padStart(2, '0')}s remaining`;
+  if (secs >= 3600) {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    return `${h}h ${m}m remaining`;
+  }
+  if (secs >= 60) return `${Math.floor(secs / 60)}m ${String(secs % 60).padStart(2, '0')}s remaining`;
+  return `${secs}s remaining`;
 }
 
 export function clockText(secs: number) {
+  if (secs >= 3600) {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
   return `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
 }

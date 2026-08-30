@@ -9,6 +9,7 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.shad005.ibtida-app",
       "infoPlist": {
         "NSSupportsTimeSensitiveNotifications": true
       }

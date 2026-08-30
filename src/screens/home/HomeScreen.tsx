@@ -3,11 +3,14 @@ import { ScrollView, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
+import { useFocusEffect } from '@react-navigation/native';
 
-import { useAppState, PrayerName } from '../../state/AppState';
+import { useAppState, countdownText, PrayerName } from '../../state/AppState';
 import { useAuth } from '../../state/AuthContext';
 import * as PrayerService from '../../services/prayers';
 import * as PrayerSettingsService from '../../services/prayerSettings';
+import { listCommunityGoals } from '../../services/community';
+import { supabase } from '../../lib/supabase';
 import type { PrayerCalcSettings } from '../../services/prayerSettings';
 import { classifyPrayersForDate, computePrayerTimes, formatCoordinates, formatPrayerTime, getPrayerCountdownWindow } from '../../lib/prayerTimes';
 import { nav } from '../../navigation/navigate';
@@ -42,6 +45,11 @@ export default function HomeScreen() {
   const [logged, setLogged] = useState<Record<PrayerName, boolean> | null>(null);
   const [busy, setBusy] = useState<Set<PrayerName>>(new Set());
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [streak, setStreak] = useState<number | null>(null);
+  const [communityTotal, setCommunityTotal] = useState<number | null>(null);
+  const [streakDays, setStreakDays] = useState<{ label: string; hit: boolean }[]>(
+    STREAK_LABELS.map((label) => ({ label, hit: false }))
+  );
 
   // Real location + calculation settings — same get-or-request-permission
   // bootstrap as PrayerScreen (both are independent entry points into the
@@ -128,12 +136,52 @@ export default function HomeScreen() {
       .catch((e) => {
         if (cancelled) return;
         setLogged((l) => l ?? PrayerService.emptyPrayerRecord(false));
-        setToastMsg(e instanceof Error ? e.message : 'Could not load today’s prayers.');
+        setToastMsg(e instanceof Error ? e.message : "Could not load today's prayers.");
       });
     return () => {
       cancelled = true;
     };
   }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      let active = true;
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+      const fromDate = sevenDaysAgo.toISOString().slice(0, 10);
+      supabase
+        .from('prayer_logs')
+        .select('log_date')
+        .eq('user_id', user.id)
+        .eq('done', true)
+        .gte('log_date', fromDate)
+        .then(({ data, error }) => {
+          if (!active) return;
+          if (error || !data) { setStreak(null); return; }
+          const hitDates = new Set(data.map((r: { log_date: string }) => r.log_date));
+          const distinct = hitDates.size;
+          setStreak(distinct);
+          const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+          setStreakDays(
+            Array.from({ length: 7 }, (_, i) => {
+              const d = new Date();
+              d.setDate(d.getDate() - (6 - i));
+              return { label: DAY_LETTERS[d.getDay()], hit: hitDates.has(d.toISOString().slice(0, 10)) };
+            })
+          );
+        });
+      listCommunityGoals(user.id)
+        .then((goals) => {
+          if (!active) return;
+          setCommunityTotal(goals.reduce((sum, g) => sum + g.totalProgress, 0));
+        })
+        .catch(() => {});
+      return () => {
+        active = false;
+      };
+    }, [user])
+  );
 
   const handleTilePress = useCallback(
     async (name: PrayerName) => {
@@ -185,7 +233,9 @@ export default function HomeScreen() {
         <RiseIn style={{ paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 1 }}>
             <PressableScale onPress={nav.profile} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#D8E6F5', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#3E6191' }}>UA</Text>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#3E6191' }}>
+                {user?.email ? user.email.charAt(0).toUpperCase() : '?'}
+              </Text>
             </PressableScale>
             <View style={{ flexShrink: 1 }}>
               <Text style={{ fontSize: 17, fontWeight: '700', color: '#1B2430', letterSpacing: -0.01 }} numberOfLines={1}>
@@ -277,7 +327,7 @@ export default function HomeScreen() {
 
         {/* Today's progress header */}
         <RiseIn delay={150} style={{ paddingHorizontal: 20, marginTop: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#1B2430', letterSpacing: -0.015 }}>Today’s Progress</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#1B2430', letterSpacing: -0.015 }}>Today's Progress</Text>
           <PressableScale onPress={nav.progress} style={{ backgroundColor: colors.primaryTint, borderRadius: 11, paddingVertical: 8, paddingHorizontal: 12 }}>
             <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>View All</Text>
           </PressableScale>
@@ -290,18 +340,18 @@ export default function HomeScreen() {
               <Text style={{ fontSize: 25, fontWeight: '700', color: '#1B2430', letterSpacing: -0.02 }}>{dayPct}%</Text>
             </ProgressRing>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1B2430' }}>Today’s Prayers</Text>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1B2430' }}>Today's Prayers</Text>
               <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 7 }}>{doneCount} of 5 Completed</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 14 }}>
                 <Text style={{ fontSize: 13, fontWeight: '600', color: '#1B2430' }}>
-                  {countdown && calcSettings ? `${countdown.name} ${formatPrayerTime(countdown.end, calcSettings.timezone)}` : '—'}
+                  {countdown && calcSettings ? `${countdown.name} ${formatPrayerTime(countdown.end, Intl.DateTimeFormat().resolvedOptions().timeZone)}` : '—'}
                 </Text>
                 <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: '#EDF0F4', overflow: 'hidden' }}>
                   <View style={{ height: '100%', width: `${Math.round(nextRingProgress * 100)}%`, borderRadius: 3, backgroundColor: '#4E8FE0' }} />
                 </View>
               </View>
               <Text style={{ fontSize: 11.5, color: colors.inkSecondary, marginTop: 9 }}>
-                {Math.floor(state.secs / 60)}m {String(state.secs % 60).padStart(2, '0')}s remaining
+                {countdownText(state.secs)}
               </Text>
             </View>
           </View>
@@ -336,7 +386,7 @@ export default function HomeScreen() {
                 <Icon size={20} color={current ? '#4CA96B' : '#8A93A0'} />
                 <Text style={{ fontSize: 11, fontWeight: '600', color: '#1B2430' }}>{name}</Text>
                 <Text style={{ fontSize: 12, color: '#5C6673' }}>
-                  {times && calcSettings ? formatPrayerTime(times[name.toLowerCase() as 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'], calcSettings.timezone) : '—:—'}
+                  {times && calcSettings ? formatPrayerTime(times[name.toLowerCase() as 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'], Intl.DateTimeFormat().resolvedOptions().timeZone) : '—:—'}
                 </Text>
                 {done ? (
                   <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: colors.successStrong, alignItems: 'center', justifyContent: 'center' }}>
@@ -382,10 +432,12 @@ export default function HomeScreen() {
             <Text style={{ fontSize: 14.5, fontWeight: '700', color: '#1B2430' }}>Daily Dhikr Streak</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginTop: 14 }}>
               <View>
-                <Text style={{ fontSize: 30, fontWeight: '700', color: '#1B2430', letterSpacing: -0.025 }}>7</Text>
+                <Text style={{ fontSize: 30, fontWeight: '700', color: '#1B2430', letterSpacing: -0.025 }}>
+                  {streak === null ? '—' : streak}
+                </Text>
                 <Text style={{ fontSize: 11.5, color: colors.inkSecondary, marginTop: 6 }}>Days</Text>
               </View>
-              <StreakDotRow days={STREAK_LABELS.map((label, i) => ({ label, hit: i < 5 }))} />
+              <StreakDotRow days={streakDays} />
             </View>
           </PressableScale>
         </RiseIn>
@@ -399,10 +451,11 @@ export default function HomeScreen() {
           >
             <View style={{ flexShrink: 1 }}>
               <Text style={{ fontSize: 14.5, fontWeight: '700', color: '#1B2430' }}>Community Impact</Text>
-              <Text style={{ fontSize: 27, fontWeight: '700', color: '#1B2430', letterSpacing: -0.025, marginTop: 12 }}>{impactText}</Text>
+              <Text style={{ fontSize: 27, fontWeight: '700', color: '#1B2430', letterSpacing: -0.025, marginTop: 12 }}>
+                {communityTotal === null ? '—' : communityTotal.toLocaleString('en-US')}
+              </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 9 }}>
-                <Text style={{ fontSize: 11.5, color: colors.inkSecondary }}>Dhikr counted today</Text>
-                <Text style={{ fontSize: 11.5, fontWeight: '600', color: colors.successText }}>+18,421 today</Text>
+                <Text style={{ fontSize: 11.5, color: colors.inkSecondary }}>Total community recitations</Text>
               </View>
             </View>
             <BarChart values={[34, 48, 58, 70, 84, 100]} />

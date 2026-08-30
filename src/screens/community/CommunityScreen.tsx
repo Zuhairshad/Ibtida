@@ -16,7 +16,6 @@ import { RowSkeleton } from '../../components/Skeleton';
 import EmptyState from '../../components/EmptyState';
 import Toast from '../../components/Toast';
 import { TrendUpIcon, ChevronRightIcon, CommunityIcon } from '../../theme/icons';
-import { FEED, LIVE_NOW } from '../../state/communityData';
 
 const TABS = ['Overview', 'Goals', 'Circles', 'Feed'];
 
@@ -32,6 +31,7 @@ export default function CommunityScreen() {
   const [goals, setGoals] = useState<CommunityGoal[]>([]);
   const [goalsLoading, setGoalsLoading] = useState(true);
   const [circleCount, setCircleCount] = useState<number | null>(null);
+  const [totalDhikr, setTotalDhikr] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [joiningId, setJoiningId] = useState<string | null>(null);
 
@@ -45,6 +45,7 @@ export default function CommunityScreen() {
           if (!active) return;
           setGoals(g);
           setCircleCount(circles.length);
+          setTotalDhikr(g.reduce((sum, goal) => sum + goal.totalProgress, 0));
         })
         .catch(() => active && setToast('Could not load community data.'))
         .finally(() => active && setGoalsLoading(false));
@@ -146,10 +147,12 @@ export default function CommunityScreen() {
             <RiseIn delay={70} style={{ paddingHorizontal: 24, marginTop: 18 }}>
               <View style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 30, padding: 26, backgroundColor: '#FBF8F1', alignItems: 'center' }}>
                 <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary }}>Today’s community dhikr</Text>
-                <Text style={{ fontSize: 42, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.035, marginTop: 16 }}>2,847,391</Text>
+                <Text style={{ fontSize: 42, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.035, marginTop: 16 }}>
+                  {totalDhikr === null ? '—' : totalDhikr.toLocaleString()}
+                </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.bgTint }}>
                   <TrendUpIcon />
-                  <Text style={{ fontSize: 12.5, fontWeight: '500', color: colors.inkStrong }}>+18,421 today</Text>
+                  <Text style={{ fontSize: 12.5, fontWeight: '500', color: colors.inkStrong }}>—</Text>
                 </View>
                 <View style={{ marginTop: 18 }}>
                   <BarChart values={[34, 48, 58, 70, 84, 100]} height={40} color={colors.successStrong} />
@@ -162,13 +165,8 @@ export default function CommunityScreen() {
 
             <RiseIn delay={100} style={{ paddingHorizontal: 24, marginTop: 18 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary, marginBottom: 12 }}>Live right now</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                {LIVE_NOW.map((t) => (
-                  <View key={t.label} style={{ flex: 1, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 20, padding: 16, backgroundColor: '#FFFFFF' }}>
-                    <Text style={{ fontSize: 20, fontWeight: '700', color: colors.inkStrong, letterSpacing: -0.02 }}>{t.value}</Text>
-                    <Text style={{ fontSize: 11.5, color: colors.inkSecondary, marginTop: 6, lineHeight: 16 }}>{t.label}</Text>
-                  </View>
-                ))}
+              <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 20, padding: 16, backgroundColor: '#FFFFFF', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: colors.inkSecondary }}>Live stats coming soon</Text>
               </View>
             </RiseIn>
 
@@ -210,32 +208,14 @@ export default function CommunityScreen() {
           </RiseIn>
         )}
 
-        {/* FEED — recent activity, framed as contribution not competition */}
+        {/* FEED — activity feed coming soon */}
         {state.commTab === 3 && (
           <RiseIn delay={60} style={{ paddingHorizontal: 24, marginTop: 18 }}>
-            <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary, marginBottom: 12 }}>Recent activity</Text>
-            <View style={{ gap: 8 }}>
-              {FEED.map((f) => (
-                <View key={f.name + f.when} style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 20, padding: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'flex-start', gap: 13 }}>
-                  <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: f.bg, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: colors.inkStrong }}>{f.initial}</Text>
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ fontSize: 14.5, lineHeight: 21, color: colors.inkStrong }}>
-                      <Text style={{ fontWeight: '600' }}>{f.name}</Text> {f.action}
-                    </Text>
-                    <Text style={{ fontSize: 11.5, color: colors.inkSecondary, marginTop: 6 }}>
-                      {f.when} · {f.likes} encouragements
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-            <View style={{ marginTop: 12, borderRadius: 22, padding: 17, backgroundColor: colors.bgTint }}>
-              <Text style={{ fontSize: 12.5, lineHeight: 20, color: colors.inkMuted }}>
-                Activity is shown to encourage, never to rank. Nothing here compares one person’s worship to another’s.
-              </Text>
-            </View>
+            <EmptyState
+              icon={<CommunityIcon />}
+              title="Activity feed coming soon"
+              subtitle="Community activity will appear here once available."
+            />
           </RiseIn>
         )}
       </ScrollView>

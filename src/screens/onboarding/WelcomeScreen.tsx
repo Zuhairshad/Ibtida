@@ -1,39 +1,52 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, Keyboard, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Rect } from 'react-native-svg';
 
 import { useAuth } from '../../state/AuthContext';
-import { colors } from '../../theme/tokens';
+import { arabicFont, colors } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PrimaryButton from '../../components/PrimaryButton';
 import SecondaryButton from '../../components/SecondaryButton';
 import PressableScale from '../../components/PressableScale';
 import SegmentedControl from '../../components/SegmentedControl';
 
-type Mode = 'signin' | 'signup';
-// Which async action is in flight — disables every button, not just the one
-// pressed, so the user can't fire a second method mid-request.
-type Busy = null | 'password' | 'magic' | 'google';
+// ─── Local palette ────────────────────────────────────────────────────────────
+const IVORY = '#FAF8F3';
+const GOLD = '#C9A96E';
+const ARABIC_BROWN = '#5A4520';
+const CARD_BORDER = 'rgba(180,150,80,0.12)';
 
+// ─── Shared field styles ──────────────────────────────────────────────────────
 const inputCardStyle = {
   borderWidth: 1,
-  borderColor: colors.cardBorder,
-  borderRadius: 18,
+  borderColor: CARD_BORDER,
+  borderRadius: 26,
   backgroundColor: '#FFFFFF',
   overflow: 'hidden' as const,
 };
 
 const fieldStyle = {
-  padding: 16,
+  paddingHorizontal: 18,
+  paddingVertical: 14,
   borderBottomWidth: 1,
-  borderColor: colors.cardBorder,
+  borderColor: CARD_BORDER,
 };
 
 const fieldLabelStyle = {
   fontSize: 11,
   fontWeight: '600' as const,
-  letterSpacing: 0.09,
+  letterSpacing: 0.08,
   textTransform: 'uppercase' as const,
   color: colors.inkSecondary,
 };
@@ -42,15 +55,23 @@ const fieldInputStyle = {
   fontSize: 16,
   fontWeight: '500' as const,
   color: colors.inkStrong,
-  marginTop: 8,
+  marginTop: 6,
   padding: 0,
   minHeight: 22,
 };
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+type Mode = 'signin' | 'signup';
+type Busy = null | 'password' | 'magic' | 'google';
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
-  const [glow] = useState(() => new Animated.Value(0));
   const { signUpWithEmail, signInWithEmail, signInWithMagicLink, signInWithGoogle } = useAuth();
+
+  // Animated values
+  const [bismillahOpacity] = useState(() => new Animated.Value(0));
+  const [bismillahTranslateY] = useState(() => new Animated.Value(6));
 
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
@@ -59,24 +80,30 @@ export default function WelcomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
+  // Fade-in bismillah on mount
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glow, { toValue: 1, duration: 3500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(glow, { toValue: 0, duration: 3500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [glow]);
+    Animated.parallel([
+      Animated.timing(bismillahOpacity, {
+        toValue: 1,
+        duration: 1200,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(bismillahTranslateY, {
+        toValue: 0,
+        duration: 900,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [bismillahOpacity, bismillahTranslateY]);
 
-  const glowOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.7] });
-  const glowScale = glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] });
-
+  // ── Validation ──────────────────────────────────────────────────────────────
   const emailValid = /\S+@\S+\.\S+/.test(email.trim());
   const canSubmitPassword = emailValid && password.length >= 6 && !busy;
   const canSendMagicLink = emailValid && !busy;
 
+  // ── Handlers ────────────────────────────────────────────────────────────────
   const onChangeMode = (i: number) => {
     setMode(i === 0 ? 'signin' : 'signup');
     setError(null);
@@ -117,34 +144,88 @@ export default function WelcomeScreen() {
     if (result.error) setError(result.error);
   };
 
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <ScreenFade duration={450} style={{ backgroundColor: colors.bg }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <ScreenFade duration={450} style={{ backgroundColor: IVORY }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <ScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32, flexGrow: 1 }}
+          contentContainerStyle={{
+            paddingHorizontal: 24,
+            paddingTop: insets.top + 24,
+            paddingBottom: insets.bottom + 40,
+            flexGrow: 1,
+          }}
         >
-          <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
-            <Animated.View style={{ position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(217,190,134,0.4)', opacity: glowOpacity, transform: [{ scale: glowScale }] }} />
-            <Svg width={92} height={92} viewBox="0 0 152 152" fill="none">
-              <Circle cx={76} cy={76} r={62} stroke="#3D73C9" />
-              <Circle cx={76} cy={76} r={44} stroke="#5EAA78" />
-              <Rect x={32} y={32} width={88} height={88} rx={10} stroke="rgba(22,50,62,0.55)" transform="rotate(45 76 76)" />
-              <Circle cx={76} cy={76} r={6.5} fill="#3D73C9" />
-            </Svg>
+          {/* ── Hero area ─────────────────────────────────────────────────── */}
+          <View style={{ alignItems: 'center', marginBottom: 28 }}>
+            {/* Bismillah calligraphy */}
+            <Animated.Text
+              style={{
+                fontFamily: arabicFont,
+                fontSize: 28,
+                color: ARABIC_BROWN,
+                textAlign: 'center',
+                opacity: bismillahOpacity,
+                transform: [{ translateY: bismillahTranslateY }],
+                marginBottom: 20,
+                lineHeight: 42,
+              }}
+            >
+              {'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ'}
+            </Animated.Text>
+
+            {/* App name */}
+            <Text
+              style={{
+                fontSize: 38,
+                fontWeight: '700',
+                color: colors.inkStrong,
+                letterSpacing: -0.04 * 38,
+                lineHeight: 44,
+              }}
+            >
+              Ibtida
+            </Text>
+
+            {/* Tagline */}
+            <Text
+              style={{
+                fontSize: 15,
+                color: colors.inkSecondary,
+                marginTop: 6,
+                lineHeight: 22,
+              }}
+            >
+              Begin. Return. Continue.
+            </Text>
+
+            {/* Gold decorative divider */}
+            <Text
+              style={{
+                fontSize: 14,
+                color: GOLD,
+                marginTop: 16,
+                letterSpacing: 4,
+              }}
+            >
+              {'· • · • ·'}
+            </Text>
           </View>
 
-          <Text style={{ fontSize: 27, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025, lineHeight: 32, textAlign: 'center', marginTop: 12 }}>
-            Small steps.{'\n'}Consistent worship.
-          </Text>
-          <Text style={{ fontSize: 15, lineHeight: 22, color: colors.inkMuted, marginTop: 10, marginBottom: 24, textAlign: 'center' }}>
-            A quiet record of your prayer, dhikr and reading. Everything private by default.
-          </Text>
+          {/* ── Auth form ─────────────────────────────────────────────────── */}
+          <SegmentedControl
+            options={['Sign in', 'Create account']}
+            selected={mode === 'signin' ? 0 : 1}
+            onChange={onChangeMode}
+          />
 
-          <SegmentedControl options={['Sign in', 'Create account']} selected={mode === 'signin' ? 0 : 1} onChange={onChangeMode} />
-
-          <View style={[inputCardStyle, { marginTop: 16 }]}>
+          <View style={[inputCardStyle, { marginTop: 14 }]}>
+            {/* Email field */}
             <View style={fieldStyle}>
               <Text style={fieldLabelStyle}>Email</Text>
               <TextInput
@@ -154,7 +235,7 @@ export default function WelcomeScreen() {
                   setError(null);
                 }}
                 placeholder="you@example.com"
-                placeholderTextColor="#A8AEB4"
+                placeholderTextColor="#B8AFA4"
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
@@ -163,6 +244,8 @@ export default function WelcomeScreen() {
                 style={fieldInputStyle}
               />
             </View>
+
+            {/* Password field — no bottom border on the last field */}
             <View style={[fieldStyle, { borderBottomWidth: 0 }]}>
               <Text style={fieldLabelStyle}>Password</Text>
               <TextInput
@@ -172,7 +255,7 @@ export default function WelcomeScreen() {
                   setError(null);
                 }}
                 placeholder={mode === 'signin' ? 'Your password' : 'At least 6 characters'}
-                placeholderTextColor="#A8AEB4"
+                placeholderTextColor="#B8AFA4"
                 secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -185,9 +268,19 @@ export default function WelcomeScreen() {
             </View>
           </View>
 
-          {error ? <Text style={{ fontSize: 13, color: colors.dangerInk, marginTop: 12, lineHeight: 19 }}>{error}</Text> : null}
-          {!error && info ? <Text style={{ fontSize: 13, color: colors.successText, marginTop: 12, lineHeight: 19 }}>{info}</Text> : null}
+          {/* Inline messages */}
+          {error ? (
+            <Text style={{ fontSize: 13, color: colors.dangerInk, marginTop: 12, lineHeight: 19 }}>
+              {error}
+            </Text>
+          ) : null}
+          {!error && info ? (
+            <Text style={{ fontSize: 13, color: colors.successText, marginTop: 12, lineHeight: 19 }}>
+              {info}
+            </Text>
+          ) : null}
 
+          {/* Primary action */}
           <PrimaryButton
             label={mode === 'signin' ? 'Sign in' : 'Create account'}
             onPress={onSubmitPassword}
@@ -196,27 +289,37 @@ export default function WelcomeScreen() {
             style={{ marginTop: 16 }}
           />
 
+          {/* Magic link — ghost/secondary button */}
           <SecondaryButton
-            label="Email me a sign-in link instead"
+            label="Email me a link"
             onPress={onSendMagicLink}
-            style={{ marginTop: 4, opacity: canSendMagicLink || busy === 'magic' ? 1 : 0.5 }}
+            style={{ marginTop: 6, opacity: canSendMagicLink || busy === 'magic' ? 1 : 0.5 }}
           />
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 16, gap: 12 }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.divider }} />
-            <Text style={{ fontSize: 12.5, color: colors.inkFaint }}>or</Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.divider }} />
+          {/* "or" divider */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginVertical: 16,
+              gap: 12,
+            }}
+          >
+            <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(180,150,80,0.2)' }} />
+            <Text style={{ fontSize: 12.5, color: colors.inkSecondary }}>or</Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(180,150,80,0.2)' }} />
           </View>
 
+          {/* Google button */}
           <PressableScale
             onPress={onGoogle}
             disabled={!!busy}
             scaleTo={0.99}
             style={{
               minHeight: 52,
-              borderRadius: 16,
+              borderRadius: 26,
               borderWidth: 1,
-              borderColor: colors.cardBorderStrong,
+              borderColor: CARD_BORDER,
               backgroundColor: '#FFFFFF',
               flexDirection: 'row',
               alignItems: 'center',
@@ -230,13 +333,27 @@ export default function WelcomeScreen() {
             ) : (
               <>
                 <GoogleGlyph />
-                <Text style={{ fontSize: 15, fontWeight: '600', color: colors.inkStrong }}>Continue with Google</Text>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: colors.inkStrong }}>
+                  Continue with Google
+                </Text>
               </>
             )}
           </PressableScale>
 
-          <Text style={{ fontSize: 12, color: colors.inkFaint, textAlign: 'center', marginTop: 20, lineHeight: 18 }}>
-            {mode === 'signin' ? "New here? Switch to “Create account” above." : 'By continuing you agree that your worship data stays private to you by default.'}
+          {/* Footer note */}
+          <Text
+            style={{
+              fontSize: 12,
+              color: colors.inkSecondary,
+              textAlign: 'center',
+              marginTop: 22,
+              lineHeight: 18,
+              opacity: 0.7,
+            }}
+          >
+            {mode === 'signin'
+              ? 'New here? Switch to "Create account" above.'
+              : 'Your worship data stays private to you by default.'}
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -244,12 +361,31 @@ export default function WelcomeScreen() {
   );
 }
 
-// Simple lettermark stand-in for the Google "G" — avoids needing an image
-// asset/brand SVG just for this button.
+// ─── Google "G" glyph ────────────────────────────────────────────────────────
 function GoogleGlyph({ size = 18 }: { size?: number }) {
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 1.5, borderColor: '#4A7FC1', alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontSize: size * 0.62, fontWeight: '700', color: '#4A7FC1', includeFontPadding: false, lineHeight: size }}>G</Text>
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        borderWidth: 1.5,
+        borderColor: '#4A7FC1',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text
+        style={{
+          fontSize: size * 0.62,
+          fontWeight: '700',
+          color: '#4A7FC1',
+          includeFontPadding: false,
+          lineHeight: size,
+        }}
+      >
+        G
+      </Text>
     </View>
   );
 }

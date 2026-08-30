@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '../../state/AuthContext';
 import { getProfile, getPrivacySettings, type Profile } from '../../services/settings';
+import { getPrayerCalcSettings } from '../../services/prayerSettings';
+import { supabase } from '../../lib/supabase';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
@@ -28,14 +30,30 @@ export default function ProfileScreen() {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
+  const [activeGoalsCount, setActiveGoalsCount] = useState<number | null>(null);
+  const [bookmarksCount, setBookmarksCount] = useState<number | null>(null);
+  const [circlesCount, setCirclesCount] = useState<number | null>(null);
+  const [prayerStreak, setPrayerStreak] = useState<number | null>(null);
+  const [prayerConsistency, setPrayerConsistency] = useState<number | null>(null);
+  const [calcSettingsLabel, setCalcSettingsLabel] = useState('Settings');
+
   useEffect(() => {
     if (!user) return;
     let mounted = true;
-    Promise.all([getProfile(user.id), getPrivacySettings(user.id)])
-      .then(([profileResult, privacyResult]) => {
+    Promise.all([getProfile(user.id), getPrivacySettings(user.id), getPrayerCalcSettings(user.id)])
+      .then(([profileResult, privacyResult, calcSettings]) => {
         if (!mounted) return;
         setProfile(profileResult);
         setPrivacy(privacyResult);
+        if (calcSettings) {
+          const methodAbbr: Record<string, string> = {
+            MuslimWorldLeague: 'MWL', Egyptian: 'Egyptian', Karachi: 'Karachi',
+            UmmAlQura: 'UmmAlQura', Dubai: 'Dubai', MoonsightingCommittee: 'Moonsighting',
+            NorthAmerica: 'ISNA', Kuwait: 'Kuwait', Qatar: 'Qatar',
+            Singapore: 'Singapore', Tehran: 'Tehran', Turkey: 'Turkey',
+          };
+          setCalcSettingsLabel(`${methodAbbr[calcSettings.calculationMethod] ?? calcSettings.calculationMethod} · ${calcSettings.madhab}`);
+        }
         setLoading(false);
         setError(false);
       })
@@ -44,6 +62,38 @@ export default function ProfileScreen() {
         setLoading(false);
         setError(true);
       });
+    return () => {
+      mounted = false;
+    };
+  }, [user, reloadKey]);
+
+  useEffect(() => {
+    if (!user) return;
+    let mounted = true;
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    const fromDate = sevenDaysAgo.toISOString().slice(0, 10);
+
+    Promise.all([
+      supabase.from('adhkar_goals').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('completed_at', null),
+      supabase.from('quran_bookmarks').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      supabase.from('circle_members').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      supabase.from('prayer_logs').select('log_date').eq('user_id', user.id).eq('done', true).gte('log_date', fromDate),
+    ]).then(([goalsRes, bookmarksRes, circlesRes, logsRes]) => {
+      if (!mounted) return;
+      if (goalsRes.count !== null) setActiveGoalsCount(goalsRes.count);
+      if (bookmarksRes.count !== null) setBookmarksCount(bookmarksRes.count);
+      if (circlesRes.count !== null) setCirclesCount(circlesRes.count);
+      if (logsRes.data) {
+        const distinctDays = new Set(logsRes.data.map((r: { log_date: string }) => r.log_date)).size;
+        setPrayerStreak(distinctDays);
+        const pct = Math.round((logsRes.data.length / 35) * 100);
+        setPrayerConsistency(Math.min(100, pct));
+      }
+    }).catch(() => {
+      // Stats remain null (showing '—') on error
+    });
+
     return () => {
       mounted = false;
     };
@@ -72,11 +122,11 @@ export default function ProfileScreen() {
   const profileVisibility = privacy['Profile visibility'] ?? 'Private';
 
   const ROWS: { label: string; value: string; go: () => void }[] = [
-    { label: 'Goals', value: '2 active', go: nav.goals },
-    { label: 'Bookmarks', value: '14', go: nav.quran },
+    { label: 'Goals', value: activeGoalsCount === null ? '—' : `${activeGoalsCount} active`, go: nav.goals },
+    { label: 'Bookmarks', value: bookmarksCount === null ? '—' : String(bookmarksCount), go: nav.quran },
     { label: 'History', value: 'All time', go: nav.progress },
-    { label: 'Circles', value: '2', go: nav.circles },
-    { label: 'Settings', value: 'MWL · Hanafi', go: nav.privacy },
+    { label: 'Circles', value: circlesCount === null ? '—' : String(circlesCount), go: nav.circles },
+    { label: 'Settings', value: calcSettingsLabel, go: nav.privacy },
     { label: 'Privacy', value: profileVisibility, go: nav.privacy },
     { label: 'Emergency unlock history', value: 'Ibadah Lock', go: nav.emergencyHistory },
   ];
@@ -102,7 +152,7 @@ export default function ProfileScreen() {
       <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + 16, paddingHorizontal: 24, justifyContent: 'center' }}>
         <EmptyState
           icon={<WarningIcon size={22} color={colors.inkMuted} />}
-          title="Couldn’t load your profile"
+          title="Couldn't load your profile"
           subtitle="Check your connection and try again."
           actionLabel="Retry"
           onAction={load}
@@ -131,11 +181,21 @@ export default function ProfileScreen() {
         <RiseIn delay={60} style={{ paddingHorizontal: 24, marginTop: 20 }}>
           <View style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 24, padding: 20, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
             <View>
-              <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary }}>Today’s consistency</Text>
-              <Text style={{ fontSize: 24, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025, marginTop: 11 }}>7 day streak</Text>
+              <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary }}>Last 7 days</Text>
+              <Text style={{ fontSize: 24, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025, marginTop: 11 }}>
+                {prayerStreak === null ? '—' : `${prayerStreak} day streak`}
+              </Text>
             </View>
-            <ProgressRing size={56} strokeWidth={5} progress={0.8} trackColor={colors.bgTint} color={colors.success}>
-              <Text style={{ fontSize: 13, fontWeight: '600' }}>80%</Text>
+            <ProgressRing
+              size={56}
+              strokeWidth={5}
+              progress={prayerConsistency === null ? 0 : prayerConsistency / 100}
+              trackColor={colors.bgTint}
+              color={colors.success}
+            >
+              <Text style={{ fontSize: 13, fontWeight: '600' }}>
+                {prayerConsistency === null ? '—' : `${prayerConsistency}%`}
+              </Text>
             </ProgressRing>
           </View>
         </RiseIn>
@@ -203,7 +263,7 @@ export default function ProfileScreen() {
       <ConfirmSheet
         visible={confirmSignOut}
         title="Sign out?"
-        body="You’ll need to sign back in to see your prayers, goals and counts."
+        body="You'll need to sign back in to see your prayers, goals and counts."
         confirmLabel="Sign out"
         destructive
         onConfirm={onSignOut}

@@ -14,6 +14,7 @@ export type AdhkarGoal = {
   range: number;
   progress: number;
   completedAt: string | null;
+  communityGoalId: string | null;
 };
 
 type GoalRow = {
@@ -24,6 +25,7 @@ type GoalRow = {
   range: number;
   progress: number;
   completed_at: string | null;
+  community_goal_id: string | null;
 };
 
 function mapGoal(row: GoalRow): AdhkarGoal {
@@ -35,6 +37,7 @@ function mapGoal(row: GoalRow): AdhkarGoal {
     range: row.range,
     progress: row.progress,
     completedAt: row.completed_at,
+    communityGoalId: row.community_goal_id,
   };
 }
 
@@ -47,30 +50,47 @@ export async function createGoal(
   title: string,
   target: number,
   frequency: number,
-  range: number
+  range: number,
+  communityGoalId?: string | null
 ): Promise<{ id: string }> {
   const { data, error } = await supabase
     .from('adhkar_goals')
-    .insert({ user_id: userId, title, target, frequency, range })
+    .insert({ user_id: userId, title, target, frequency, range, community_goal_id: communityGoalId ?? null })
     .select('id')
     .single();
   if (error) throw error;
+  if (communityGoalId) {
+    await supabase
+      .from('community_goal_members')
+      .upsert({ goal_id: communityGoalId, user_id: userId, progress: 0 }, { onConflict: 'goal_id,user_id', ignoreDuplicates: true });
+  }
   return { id: data.id as string };
 }
 
 export async function listGoals(userId: string): Promise<AdhkarGoal[]> {
   const { data, error } = await supabase
     .from('adhkar_goals')
-    .select('id, title, target, frequency, range, progress, completed_at')
+    .select('id, title, target, frequency, range, progress, completed_at, community_goal_id')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []).map(mapGoal);
 }
 
-export async function updateGoalProgress(goalId: string, progress: number): Promise<void> {
+export async function updateGoalProgress(
+  goalId: string,
+  progress: number,
+  opts?: { userId?: string; communityGoalId?: string | null }
+): Promise<void> {
   const { error } = await supabase.from('adhkar_goals').update({ progress }).eq('id', goalId);
   if (error) throw error;
+  if (opts?.userId && opts?.communityGoalId) {
+    await supabase
+      .from('community_goal_members')
+      .update({ progress })
+      .eq('goal_id', opts.communityGoalId)
+      .eq('user_id', opts.userId);
+  }
 }
 
 export async function completeGoal(goalId: string): Promise<void> {

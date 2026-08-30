@@ -105,12 +105,27 @@ async function currentOrDefaults(userId: string): Promise<PrayerCalcSettings | n
   return getPrayerCalcSettings(userId);
 }
 
+/** Resolves the IANA timezone for coordinates via reverse geocoding (iOS only;
+ * falls back to the supplied `fallbackTimezone`). Keeps timezone in sync with
+ * the prayer location rather than the device's system clock. */
+async function resolveTimezone(latitude: number, longitude: number, fallbackTimezone: string): Promise<string> {
+  try {
+    const results = await Location.reverseGeocodeAsync({ latitude, longitude });
+    const tz = (results[0] as Record<string, unknown>)?.timezone as string | undefined;
+    if (tz && typeof tz === 'string') return tz;
+  } catch {
+    // ignore — reverseGeocode may not be available in all environments
+  }
+  return fallbackTimezone;
+}
+
 export async function setLocation(userId: string, latitude: number, longitude: number, timezone: string): Promise<void> {
+  const resolvedTz = await resolveTimezone(latitude, longitude, timezone);
   const existing = await currentOrDefaults(userId);
   await setPrayerCalcSettings(userId, {
     latitude,
     longitude,
-    timezone,
+    timezone: resolvedTz,
     calculationMethod: existing?.calculationMethod ?? DEFAULT_CALCULATION_METHOD,
     madhab: existing?.madhab ?? DEFAULT_MADHAB,
   });
@@ -130,4 +145,34 @@ export async function setMadhab(userId: string, madhab: Madhab): Promise<void> {
     throw new Error('Cannot set madhab before a location has been configured.');
   }
   await setPrayerCalcSettings(userId, { ...existing, madhab });
+}
+
+// ---------------------------------------------------------------------------
+// Kalimat prayer-times integration
+// Uses the Kalimat API as the data source for prayer times when a country
+// code is available, with the local adhan-js calculation as the fallback.
+// ---------------------------------------------------------------------------
+import * as Location from 'expo-location';
+import { fetchPrayerTimes, type PrayerTimesDay } from '../lib/kalimatApi';
+
+/** Resolves the ISO country code from coordinates via reverse geocoding.
+ * Returns null if permission denied or geocoding fails. */
+export async function resolveCountryCode(latitude: number, longitude: number): Promise<string | null> {
+  try {
+    const results = await Location.reverseGeocodeAsync({ latitude, longitude });
+    return results[0]?.isoCountryCode ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Fetches today's prayer times from the Kalimat API for the given settings.
+ * Returns null if the API call fails — callers should fall back to adhan-js. */
+export async function getPrayerTimesFromKalimat(
+  settings: PrayerCalcSettings,
+  date?: string
+): Promise<PrayerTimesDay | null> {
+  const countryCode = await resolveCountryCode(settings.latitude, settings.longitude);
+  if (!countryCode) return null;
+  return fetchPrayerTimes(settings.latitude, settings.longitude, countryCode, date);
 }

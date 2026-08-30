@@ -74,7 +74,7 @@ export default function CirclesScreen() {
           ) : (
             <View style={{ gap: 10 }}>
               {circles.map((c) => (
-                <View key={c.id} style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 24, padding: 20, backgroundColor: '#FFFFFF' }}>
+                <PressableScale key={c.id} scaleTo={0.985} onPress={() => {}} style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 24, padding: 20, backgroundColor: '#FFFFFF' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 17, fontWeight: '600', color: colors.inkStrong }}>{c.name}</Text>
@@ -88,7 +88,7 @@ export default function CirclesScreen() {
                       </View>
                     )}
                   </View>
-                </View>
+                </PressableScale>
               ))}
             </View>
           )}

@@ -3,7 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 
-import { useAppState, PrayerName } from '../../state/AppState';
+import { useAppState, countdownText, clockText, PrayerName } from '../../state/AppState';
 import { useAuth } from '../../state/AuthContext';
 import * as PrayerService from '../../services/prayers';
 import * as PrayerSettingsService from '../../services/prayerSettings';
@@ -286,10 +286,10 @@ export default function PrayerScreen() {
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 14 }}>
                 <Text style={{ fontSize: 30, fontWeight: '700', color: '#1B2430', letterSpacing: -0.025 }}>{countdown?.name ?? '—'}</Text>
-                <Text style={{ fontSize: 17, fontWeight: '500', color: '#5C6673' }}>{countdown && calcSettings ? formatPrayerTime(countdown.end, calcSettings.timezone) : '—'}</Text>
+                <Text style={{ fontSize: 17, fontWeight: '500', color: '#5C6673' }}>{countdown ? formatPrayerTime(countdown.end, Intl.DateTimeFormat().resolvedOptions().timeZone) : '—'}</Text>
               </View>
               <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 10 }}>
-                {Math.floor(state.secs / 60)}m {String(state.secs % 60).padStart(2, '0')}s remaining
+                {countdownText(state.secs)}
               </Text>
               <View style={{ height: 5, borderRadius: 3, backgroundColor: colors.primaryTint, marginTop: 14, width: 148, overflow: 'hidden' }}>
                 <View style={{ height: '100%', width: `${Math.round(Math.max(0, Math.min(1, nextRingProgress)) * 100)}%`, borderRadius: 3, backgroundColor: colors.primaryFill }} />
@@ -297,7 +297,7 @@ export default function PrayerScreen() {
             </View>
             <ProgressRing size={80} strokeWidth={6} progress={nextRingProgress} trackColor="#E4EAF1" color={colors.primaryFill}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: '#1B2430', textAlign: 'center' }}>
-                {String(Math.floor(state.secs / 60)).padStart(2, '0')}:{String(state.secs % 60).padStart(2, '0')}
+                {clockText(state.secs)}
                 {'\n'}
                 <Text style={{ fontSize: 9.5, fontWeight: '500', color: colors.inkSecondary }}>Remaining</Text>
               </Text>
@@ -325,7 +325,7 @@ export default function PrayerScreen() {
                 const done = !sunrise && !!logged[slotName as PrayerName];
                 const isBusy = !sunrise && busy.has(slotName as PrayerName);
                 const disabled = sunrise || (upcoming && !done);
-                const timeLabel = times && calcSettings ? formatPrayerTime(times[slotName.toLowerCase() as keyof typeof times], calcSettings.timezone) : '—:—';
+                const timeLabel = times && calcSettings ? formatPrayerTime(times[slotName.toLowerCase() as keyof typeof times], Intl.DateTimeFormat().resolvedOptions().timeZone) : '—:—';
                 const note = sunrise
                   ? 'Not a prayer time'
                   : done
