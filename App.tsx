@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, View } from 'react-native';
+import { ActivityIndicator, AppState, Platform, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -37,6 +37,13 @@ import PrayerMatTagScreen from './src/screens/shared/PrayerMatTagScreen';
 import WakeAlarmScanScreen from './src/screens/shared/WakeAlarmScanScreen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// expo-notifications ships no web implementation of the notification-response
+// APIs, so calling the hook on web throws and takes the whole app down with a
+// blank screen. Wake alarms are native-only anyway, so web gets a no-op that
+// keeps the hook order identical across platforms.
+const useLastNotificationResponse: typeof Notifications.useLastNotificationResponse =
+  Platform.OS === 'web' ? () => null : Notifications.useLastNotificationResponse;
 
 // Thin route-param -> props adapters for the two shared wake-alarm screens
 // that take plain component props rather than a `{ route }` shape of their
@@ -143,7 +150,7 @@ function RootNavigator() {
   // expo-notifications' own docs) to the QR-scan confirmation screen.
   // Cleared after handling so re-rendering (or the next unrelated
   // notification tap) doesn't re-navigate to a stale one.
-  const lastNotificationResponse = Notifications.useLastNotificationResponse();
+  const lastNotificationResponse = useLastNotificationResponse();
   useEffect(() => {
     if (!lastNotificationResponse) return;
     const data = lastNotificationResponse.notification.request.content.data;
