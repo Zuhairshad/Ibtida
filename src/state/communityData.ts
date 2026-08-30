@@ -4,6 +4,22 @@ export const COMMUNITY_GOALS = [
   { id: 2, name: 'A juz a day', people: '4,880', ends: 'in 12 days', pct: 52, pctText: '52%', done: '15', total: '30 juz' },
 ];
 
+// Activity feed. Per §16's UX rule, entries describe contribution and
+// milestones — never ranking, superiority or comparison between people.
+export const FEED = [
+  { initial: 'A', bg: '#DDEAF4', name: 'Aisha', action: 'completed morning adhkar', when: '12m', likes: 4 },
+  { initial: 'M', bg: '#E3F3EA', name: 'Musa', action: 'contributed 500 durood to 10 Million Durood', when: '48m', likes: 11 },
+  { initial: 'H', bg: '#F3E7C9', name: 'Hafsa', action: 'read a juz in the Thursday Quran group', when: '2h', likes: 7 },
+  { initial: 'Y', bg: '#EFEBFB', name: 'Yusuf', action: 'reached a 7 day prayer streak', when: '5h', likes: 9 },
+  { initial: 'S', bg: '#FBEBDA', name: 'Sumayya', action: 'joined Fajr together, 30 days', when: '1d', likes: 3 },
+];
+
+export const LIVE_NOW = [
+  { label: 'In dhikr', value: '3,412' },
+  { label: 'Reading Quran', value: '1,908' },
+  { label: 'In focus', value: '742' },
+];
+
 export const CIRCLES = [
   {
     name: 'Rahman family',

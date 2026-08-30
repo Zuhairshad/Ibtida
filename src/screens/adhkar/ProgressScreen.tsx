@@ -6,13 +6,20 @@ import { useAppState } from '../../state/AppState';
 import { colors } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
 import SegmentedControl from '../../components/SegmentedControl';
-import { PROGRESS_STATS, PROGRESS_BARS, PROGRESS_HEAT } from '../../state/adhkarData';
+import { PROGRESS_STATS_BY_RANGE, PROGRESS_BARS_BY_RANGE, PROGRESS_AXIS, PROGRESS_HEAT, PROGRESS_HEAT_DAYS } from '../../state/adhkarData';
 
 const RANGES = ['Today', 'Week', 'Month', 'Year'];
 
 export default function ProgressScreen() {
   const { state, setRange } = useAppState();
   const insets = useSafeAreaInsets();
+
+  // Every panel below reads from the selected range, so the control actually
+  // changes what you see rather than just highlighting a different pill.
+  const stats = PROGRESS_STATS_BY_RANGE[state.range];
+  const bars = PROGRESS_BARS_BY_RANGE[state.range];
+  const [axisStart, axisEnd] = PROGRESS_AXIS[state.range];
+  const heat = PROGRESS_HEAT.slice(0, PROGRESS_HEAT_DAYS[state.range]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -23,7 +30,7 @@ export default function ProgressScreen() {
         </RiseIn>
 
         <RiseIn delay={60} style={{ paddingHorizontal: 24, marginTop: 18, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-          {PROGRESS_STATS.map((s) => (
+          {stats.map((s) => (
             <View key={s.label} style={{ width: '47.5%', borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 22, padding: 18, backgroundColor: '#FFFFFF' }}>
               <Text style={{ fontSize: 27, fontWeight: '700', color: colors.inkStrong, letterSpacing: -0.03 }}>{s.value}</Text>
               <Text style={{ fontSize: 12.5, color: colors.inkMuted, marginTop: 9, lineHeight: 18 }}>{s.label}</Text>
@@ -35,13 +42,13 @@ export default function ProgressScreen() {
           <View style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 24, padding: 20, backgroundColor: '#FFFFFF' }}>
             <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary }}>Dhikr per day</Text>
             <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 5, height: 112, marginTop: 18 }}>
-              {PROGRESS_BARS.map((h, i) => (
+              {bars.map((h, i) => (
                 <View key={i} style={{ flex: 1, borderRadius: 5, backgroundColor: '#3D73C9', height: `${h}%` }} />
               ))}
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-              <Text style={{ fontSize: 12, color: colors.inkSecondary }}>2 weeks ago</Text>
-              <Text style={{ fontSize: 12, color: colors.inkSecondary }}>Today</Text>
+              <Text style={{ fontSize: 12, color: colors.inkSecondary }}>{axisStart}</Text>
+              <Text style={{ fontSize: 12, color: colors.inkSecondary }}>{axisEnd}</Text>
             </View>
           </View>
         </RiseIn>
@@ -50,7 +57,7 @@ export default function ProgressScreen() {
           <View style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 24, padding: 20, backgroundColor: '#FFFFFF' }}>
             <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary, marginBottom: 16 }}>Prayer consistency</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
-              {PROGRESS_HEAT.map((d, i) => (
+              {heat.map((d, i) => (
                 <View key={i} style={{ width: 26, height: 26, borderRadius: 8, backgroundColor: d.full ? colors.success : d.part ? '#BFE0CB' : colors.bgTint }} />
               ))}
             </View>

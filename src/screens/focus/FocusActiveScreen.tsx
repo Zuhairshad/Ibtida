@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,13 +7,22 @@ import { nav } from '../../navigation/navigate';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import ProgressRing from '../../components/ProgressRing';
+import ConfirmSheet from '../../components/ConfirmSheet';
 
 // Dark, minimal, hard-to-accidentally-exit focus state — the "Ibadah Lock"
 // distraction-blocking feature. Calls/messages explicitly remain available.
 export default function FocusActiveScreen() {
   const { state, focusTarget, tapFocus } = useAppState();
   const insets = useSafeAreaInsets();
+  const [confirmEnd, setConfirmEnd] = useState(false);
   const remaining = Math.max(focusTarget - state.focusCount, 0);
+
+  // Reaching the goal ends the session in the celebration moment rather than
+  // silently capping the counter.
+  const onTap = () => {
+    tapFocus();
+    if (state.focusCount + 1 >= focusTarget) nav.goalComplete();
+  };
 
   return (
     <ScreenFade duration={400} style={{ backgroundColor: '#1B2621' }}>
@@ -32,7 +41,8 @@ export default function FocusActiveScreen() {
         </ProgressRing>
         <Text style={{ fontSize: 17, fontWeight: '500', color: 'rgba(239,243,240,0.85)', marginTop: 30 }}>Stay focused.</Text>
         <PressableScale
-          onPress={tapFocus}
+          onPress={onTap}
+          accessibilityRole="button"
           scaleTo={0.985}
           style={{ marginTop: 20, borderWidth: 1, borderColor: 'rgba(239,243,240,0.18)', backgroundColor: 'rgba(239,243,240,0.07)', minHeight: 56, paddingHorizontal: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}
         >
@@ -42,10 +52,23 @@ export default function FocusActiveScreen() {
       </View>
 
       <View style={{ paddingHorizontal: 26, paddingBottom: insets.bottom + 20 }}>
-        <PressableScale onPress={nav.home} scaleTo={1} style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
+        <PressableScale onPress={() => setConfirmEnd(true)} accessibilityRole="button" scaleTo={1} style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 14, fontWeight: '500', color: 'rgba(239,243,240,0.5)' }}>End focus</Text>
         </PressableScale>
       </View>
+
+      {/* Early-exit friction: leaving before the goal is a deliberate choice. */}
+      <ConfirmSheet
+        visible={confirmEnd}
+        title="End focus early?"
+        body={`You have ${remaining} left of your goal. Your count so far is saved either way.`}
+        confirmLabel="End focus now"
+        onConfirm={() => {
+          setConfirmEnd(false);
+          nav.home();
+        }}
+        onCancel={() => setConfirmEnd(false)}
+      />
     </ScreenFade>
   );
 }

@@ -10,21 +10,24 @@ export type PrayerDef = {
   name: PrayerName | 'Sunrise';
   short: string;
   time: string;
+  /** When this prayer's window closes — shown in the detail sheet. */
+  endsAt: string;
   state: 'done' | 'sunrise' | 'current' | 'upcoming';
   color: string;
   tint: string;
 };
 
 export const PRAYER_TIMES: PrayerDef[] = [
-  { name: 'Fajr', short: 'Fajr', time: '4:10 AM', state: 'done', color: '#4A7FC1', tint: '#DDEAF4' },
-  { name: 'Sunrise', short: 'Sunrise', time: '5:35 AM', state: 'sunrise', color: '#C9902E', tint: '#FBF2DC' },
-  { name: 'Dhuhr', short: 'Dhuhr', time: '12:05 PM', state: 'done', color: '#D9822E', tint: '#FBEBDA' },
-  { name: 'Asr', short: 'Asr', time: '3:40 PM', state: 'current', color: '#5EAA78', tint: '#E3F3EA' },
-  { name: 'Maghrib', short: 'Maghrib', time: '6:33 PM', state: 'upcoming', color: '#C0563F', tint: '#F7DEDE' },
-  { name: 'Isha', short: 'Isha', time: '7:57 PM', state: 'upcoming', color: '#2F4B6E', tint: '#DCE3EC' },
+  { name: 'Fajr', short: 'Fajr', time: '4:10 AM', endsAt: '5:35 AM', state: 'done', color: '#4A7FC1', tint: '#DDEAF4' },
+  { name: 'Sunrise', short: 'Sunrise', time: '5:35 AM', endsAt: '12:05 PM', state: 'sunrise', color: '#C9902E', tint: '#FBF2DC' },
+  { name: 'Dhuhr', short: 'Dhuhr', time: '12:05 PM', endsAt: '3:40 PM', state: 'done', color: '#D9822E', tint: '#FBEBDA' },
+  { name: 'Asr', short: 'Asr', time: '3:40 PM', endsAt: '6:33 PM', state: 'current', color: '#5EAA78', tint: '#E3F3EA' },
+  { name: 'Maghrib', short: 'Maghrib', time: '6:33 PM', endsAt: '7:57 PM', state: 'upcoming', color: '#C0563F', tint: '#F7DEDE' },
+  { name: 'Isha', short: 'Isha', time: '7:57 PM', endsAt: '4:10 AM', state: 'upcoming', color: '#2F4B6E', tint: '#DCE3EC' },
 ];
 
 const TASBEEH_TARGET = 100;
+const IMPACT_TARGET = 2847391;
 const FOCUS_TARGET = 100;
 
 type State = {
@@ -46,7 +49,34 @@ type State = {
   secs: number;
   impact: number;
   booting: boolean;
+  /** Per-prayer adhan notification switches (Prayer detail sheet). */
+  adhan: Record<PrayerName, boolean>;
+  /** Privacy settings — each cycles through its own option list. §23: private by default. */
+  privacy: Record<string, string>;
+  /** §24 notification categories, each independently disableable. */
+  notifications: Record<string, boolean>;
+  /** Quran reader display controls. */
+  quran: { arabicSize: number; showTranslation: boolean; night: boolean };
+  /** Bookmarked surah numbers. */
+  bookmarks: number[];
+  /** Circles the user belongs to (New circle appends here). */
+  circleNames: string[];
+  focusApps: Record<string, boolean>;
+  focusDuration: number;
 };
+
+export const PRIVACY_OPTIONS: Record<string, string[]> = {
+  'Profile visibility': ['Private', 'Circles', 'Friends'],
+  'Activity visibility': ['Private', 'Circles', 'Public'],
+  'Community participation': ['On', 'Off'],
+  'Goal visibility': ['Circles', 'Private', 'Public'],
+  Location: ['While in use', 'Never'],
+  Analytics: ['Off', 'On'],
+};
+
+export const NOTIFICATION_CATEGORIES = ['Prayer', 'Adhkar', 'Goals', 'Quran', 'Focus', 'Community'];
+
+export const FOCUS_DURATIONS = ['Until goal completed', '15 minutes', '30 minutes', '1 hour'];
 
 const initialState: State = {
   logged: { Fajr: false, Dhuhr: false, Asr: true, Maghrib: false, Isha: false },
@@ -65,8 +95,23 @@ const initialState: State = {
   dateIdx: 3,
   qiblaOpen: false,
   secs: 1436,
-  impact: 2847391,
+  impact: 0,
   booting: true,
+  adhan: { Fajr: true, Dhuhr: true, Asr: true, Maghrib: true, Isha: true },
+  privacy: {
+    'Profile visibility': 'Private',
+    'Activity visibility': 'Private',
+    'Community participation': 'On',
+    'Goal visibility': 'Circles',
+    Location: 'While in use',
+    Analytics: 'Off',
+  },
+  notifications: { Prayer: true, Adhkar: true, Goals: true, Quran: false, Focus: false, Community: false },
+  quran: { arabicSize: 34, showTranslation: true, night: false },
+  bookmarks: [2, 18],
+  circleNames: [],
+  focusApps: { Instagram: true, TikTok: true, YouTube: true, Facebook: true },
+  focusDuration: 0,
 };
 
 function buzz(pattern: number | number[] = 8) {
@@ -82,9 +127,18 @@ function buzz(pattern: number | number[] = 8) {
 type Ctx = {
   state: State;
   togglePrayer: (name: PrayerName) => void;
-  markAsr: () => void;
+  toggleAdhan: (name: PrayerName) => void;
+  cyclePrivacy: (key: string) => void;
+  toggleNotification: (key: string) => void;
+  setArabicSize: (px: number) => void;
+  toggleTranslation: () => void;
+  toggleNight: () => void;
+  toggleBookmark: (surah: number) => void;
+  addCircle: (name: string) => void;
+  toggleFocusApp: (name: string) => void;
+  cycleFocusDuration: () => void;
   tapTasbeeh: () => boolean; // returns true if goal just completed
-  plusFive: () => void;
+  plusFive: () => boolean; // ditto — reaching the target via +5 completes too
   undoTasbeeh: () => void;
   resetTasbeeh: () => void;
   continueCounting: () => void;
@@ -122,33 +176,40 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, []);
 
-  const runHomeIntro = useCallback(() => {
+  // Schedules the Home entrance: dismiss the skeleton after ~850ms and ease
+  // the community total up to its real value. Split from `runHomeIntro` so
+  // the mount effect can start the timers without a synchronous setState —
+  // the initial state already *is* the booting state.
+  const startHomeIntro = useCallback(() => {
     if (bootT.current) clearTimeout(bootT.current);
     if (countT.current) clearInterval(countT.current);
-    const target = 2847391;
-    setState((s) => ({ ...s, booting: true, impact: 0 }));
     bootT.current = setTimeout(() => setState((s) => ({ ...s, booting: false })), 850);
     const start = Date.now();
     const dur = 1600;
     countT.current = setInterval(() => {
       const t = Math.min((Date.now() - start) / dur, 1);
-      const val = Math.round(target * (1 - Math.pow(1 - t, 3)));
+      const val = Math.round(IMPACT_TARGET * (1 - Math.pow(1 - t, 3)));
       setState((s) => ({ ...s, impact: val }));
       if (t >= 1 && countT.current) {
         clearInterval(countT.current);
-        setState((s) => ({ ...s, impact: target }));
+        setState((s) => ({ ...s, impact: IMPACT_TARGET }));
       }
     }, 24);
   }, []);
 
+  // Re-entering Home replays the intro from the top.
+  const runHomeIntro = useCallback(() => {
+    setState((s) => ({ ...s, booting: true, impact: 0 }));
+    startHomeIntro();
+  }, [startHomeIntro]);
+
   useEffect(() => {
-    runHomeIntro();
+    startHomeIntro();
     return () => {
       if (bootT.current) clearTimeout(bootT.current);
       if (countT.current) clearInterval(countT.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [startHomeIntro]);
 
   const togglePrayer = useCallback((name: PrayerName) => {
     setState((s) => {
@@ -158,9 +219,62 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const markAsr = useCallback(() => {
+  const toggleAdhan = useCallback((name: PrayerName) => {
+    buzz(5);
+    setState((s) => ({ ...s, adhan: { ...s.adhan, [name]: !s.adhan[name] } }));
+  }, []);
+
+  const cyclePrivacy = useCallback((key: string) => {
+    buzz(5);
+    setState((s) => {
+      const opts = PRIVACY_OPTIONS[key];
+      if (!opts) return s;
+      const next = opts[(opts.indexOf(s.privacy[key]) + 1) % opts.length];
+      return { ...s, privacy: { ...s.privacy, [key]: next } };
+    });
+  }, []);
+
+  const toggleNotification = useCallback((key: string) => {
+    buzz(5);
+    setState((s) => ({ ...s, notifications: { ...s.notifications, [key]: !s.notifications[key] } }));
+  }, []);
+
+  const setArabicSize = useCallback((px: number) => {
+    buzz(5);
+    setState((s) => ({ ...s, quran: { ...s.quran, arabicSize: Math.min(Math.max(px, 24), 48) } }));
+  }, []);
+
+  const toggleTranslation = useCallback(() => {
+    buzz(5);
+    setState((s) => ({ ...s, quran: { ...s.quran, showTranslation: !s.quran.showTranslation } }));
+  }, []);
+
+  const toggleNight = useCallback(() => {
+    buzz(5);
+    setState((s) => ({ ...s, quran: { ...s.quran, night: !s.quran.night } }));
+  }, []);
+
+  const toggleBookmark = useCallback((surah: number) => {
+    buzz(5);
+    setState((s) => ({
+      ...s,
+      bookmarks: s.bookmarks.includes(surah) ? s.bookmarks.filter((b) => b !== surah) : [...s.bookmarks, surah],
+    }));
+  }, []);
+
+  const addCircle = useCallback((name: string) => {
     buzz([8, 30, 14]);
-    setState((s) => ({ ...s, logged: { ...s.logged, Asr: true } }));
+    setState((s) => ({ ...s, circleNames: [...s.circleNames, name] }));
+  }, []);
+
+  const toggleFocusApp = useCallback((name: string) => {
+    buzz(5);
+    setState((s) => ({ ...s, focusApps: { ...s.focusApps, [name]: !s.focusApps[name] } }));
+  }, []);
+
+  const cycleFocusDuration = useCallback(() => {
+    buzz(5);
+    setState((s) => ({ ...s, focusDuration: (s.focusDuration + 1) % FOCUS_DURATIONS.length }));
   }, []);
 
   const tapTasbeeh = useCallback((): boolean => {
@@ -174,7 +288,18 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     return completed;
   }, []);
 
-  const plusFive = useCallback(() => setState((s) => ({ ...s, count: Math.min(s.count + 5, TASBEEH_TARGET) })), []);
+  // Returns true when this press reaches the target, so +5 completes the goal
+  // exactly like tapping the dial does rather than silently capping at 100.
+  const plusFive = useCallback((): boolean => {
+    let completed = false;
+    setState((s) => {
+      const n = Math.min(s.count + 5, TASBEEH_TARGET);
+      if (n >= TASBEEH_TARGET && s.count < TASBEEH_TARGET) completed = true;
+      return { ...s, count: n };
+    });
+    buzz(6);
+    return completed;
+  }, []);
   const undoTasbeeh = useCallback(() => setState((s) => ({ ...s, count: Math.max(s.count - 1, 0) })), []);
   const resetTasbeeh = useCallback(() => setState((s) => ({ ...s, count: 0 })), []);
   const continueCounting = useCallback(() => setState((s) => ({ ...s, count: 0 })), []);
@@ -226,7 +351,16 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const value: Ctx = {
     state,
     togglePrayer,
-    markAsr,
+    toggleAdhan,
+    cyclePrivacy,
+    toggleNotification,
+    setArabicSize,
+    toggleTranslation,
+    toggleNight,
+    toggleBookmark,
+    addCircle,
+    toggleFocusApp,
+    cycleFocusDuration,
     tapTasbeeh,
     plusFive,
     undoTasbeeh,

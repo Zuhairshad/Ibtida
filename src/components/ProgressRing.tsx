@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
@@ -20,7 +20,7 @@ type Props = {
 export default function ProgressRing({ size, strokeWidth, progress, trackColor = '#EDF0F4', color = '#4E8FE0', children, animate = true }: Props) {
   const r = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * r;
-  const anim = useRef(new Animated.Value(0)).current;
+  const [anim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.timing(anim, {

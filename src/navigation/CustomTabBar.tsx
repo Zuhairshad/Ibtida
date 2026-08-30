@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, Text, View } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
@@ -21,7 +21,7 @@ const TAB_META: Record<string, { label: string; Icon: typeof HomeIcon }> = {
 
 function TabButton({ routeKey, isFocused, onPress }: { routeKey: keyof typeof TAB_META; isFocused: boolean; onPress: () => void }) {
   const meta = TAB_META[routeKey];
-  const anim = useRef(new Animated.Value(isFocused ? 1 : 0)).current;
+  const [anim] = useState(() => new Animated.Value(isFocused ? 1 : 0));
 
   useEffect(() => {
     Animated.spring(anim, { toValue: isFocused ? 1 : 0, useNativeDriver: true, speed: 18, bounciness: 9 }).start();

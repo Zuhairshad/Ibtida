@@ -8,8 +8,9 @@ import { colors } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import SegmentedControl from '../../components/SegmentedControl';
+import BarChart from '../../components/BarChart';
 import { TrendUpIcon, ChevronRightIcon } from '../../theme/icons';
-import { COMMUNITY_GOALS } from '../../state/communityData';
+import { COMMUNITY_GOALS, FEED, LIVE_NOW } from '../../state/communityData';
 
 const TABS = ['Overview', 'Goals', 'Circles', 'Feed'];
 
@@ -22,6 +23,56 @@ export default function CommunityScreen() {
     else setCommTab(i);
   };
 
+  const goalsList = (
+    <View style={{ gap: 10 }}>
+      {COMMUNITY_GOALS.map((c, i) => {
+        const joined = state.joined[i];
+        return (
+          <PressableScale
+            key={c.id}
+            onPress={() => nav.communityGoal(c.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`${c.name}, ${c.pctText} complete`}
+            style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 24, padding: 20, backgroundColor: '#FFFFFF' }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 16.5, fontWeight: '600', color: colors.inkStrong }}>{c.name}</Text>
+                <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 6 }}>
+                  {c.people} participants · ends {c.ends}
+                </Text>
+              </View>
+              {joined ? (
+                <View style={{ backgroundColor: colors.bgTint, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 12 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.inkStrong }}>Joined</Text>
+                </View>
+              ) : (
+                <PressableScale
+                  onPress={() => joinCommunityGoal(i)}
+                  scaleTo={0.92}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Join ${c.name}`}
+                  style={{ backgroundColor: colors.primary, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 12 }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#FFFFFF' }}>Join</Text>
+                </PressableScale>
+              )}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 16 }}>
+              <View style={{ height: 6, flex: 1, borderRadius: 3, backgroundColor: colors.bgTint, overflow: 'hidden' }}>
+                <View style={{ height: '100%', borderRadius: 3, backgroundColor: '#3D73C9', width: `${c.pct}%` }} />
+              </View>
+              <Text style={{ fontSize: 12.5, fontWeight: '600', color: colors.inkMuted }}>{c.pctText}</Text>
+            </View>
+            <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 10 }}>
+              {c.done} / {c.total}
+            </Text>
+          </PressableScale>
+        );
+      })}
+    </View>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
@@ -30,75 +81,102 @@ export default function CommunityScreen() {
           <SegmentedControl options={TABS} selected={state.commTab} onChange={onTabChange} style={{ marginTop: 16 }} />
         </RiseIn>
 
-        <RiseIn delay={70} style={{ paddingHorizontal: 24, marginTop: 18 }}>
-          <View style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 30, padding: 26, backgroundColor: '#FBF8F1', alignItems: 'center' }}>
-            <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary }}>Today's community dhikr</Text>
-            <Text style={{ fontSize: 42, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.035, marginTop: 16 }}>2,847,391</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.bgTint }}>
-              <TrendUpIcon />
-              <Text style={{ fontSize: 12.5, fontWeight: '500', color: colors.inkStrong }}>+18,421 today</Text>
-            </View>
-            <Text style={{ fontSize: 14, lineHeight: 22, color: colors.inkMuted, marginTop: 18, paddingTop: 16, borderTopWidth: 1, borderColor: colors.divider, textAlign: 'center' }}>
-              Your contribution is counted, never named.
+        {/* OVERVIEW — hero total, live-now tiles, goals, circles link */}
+        {state.commTab === 0 && (
+          <>
+            <RiseIn delay={70} style={{ paddingHorizontal: 24, marginTop: 18 }}>
+              <View style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 30, padding: 26, backgroundColor: '#FBF8F1', alignItems: 'center' }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary }}>Today’s community dhikr</Text>
+                <Text style={{ fontSize: 42, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.035, marginTop: 16 }}>2,847,391</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.bgTint }}>
+                  <TrendUpIcon />
+                  <Text style={{ fontSize: 12.5, fontWeight: '500', color: colors.inkStrong }}>+18,421 today</Text>
+                </View>
+                <View style={{ marginTop: 18 }}>
+                  <BarChart values={[34, 48, 58, 70, 84, 100]} height={40} color={colors.successStrong} />
+                </View>
+                <Text style={{ fontSize: 14, lineHeight: 22, color: colors.inkMuted, marginTop: 18, paddingTop: 16, borderTopWidth: 1, borderColor: colors.divider, textAlign: 'center' }}>
+                  Your contribution is counted, never named.
+                </Text>
+              </View>
+            </RiseIn>
+
+            <RiseIn delay={100} style={{ paddingHorizontal: 24, marginTop: 18 }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary, marginBottom: 12 }}>Live right now</Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {LIVE_NOW.map((t) => (
+                  <View key={t.label} style={{ flex: 1, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 20, padding: 16, backgroundColor: '#FFFFFF' }}>
+                    <Text style={{ fontSize: 20, fontWeight: '700', color: colors.inkStrong, letterSpacing: -0.02 }}>{t.value}</Text>
+                    <Text style={{ fontSize: 11.5, color: colors.inkSecondary, marginTop: 6, lineHeight: 16 }}>{t.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </RiseIn>
+
+            <RiseIn delay={130} style={{ paddingHorizontal: 24, marginTop: 22 }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary, marginBottom: 12 }}>Community goals</Text>
+              {goalsList}
+            </RiseIn>
+
+            <RiseIn delay={170} style={{ paddingHorizontal: 24, marginTop: 12 }}>
+              <PressableScale
+                onPress={nav.circles}
+                accessibilityRole="button"
+                style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, padding: 18, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 }}
+              >
+                <View>
+                  <Text style={{ fontSize: 15.5, fontWeight: '600', color: colors.inkStrong }}>Your circles</Text>
+                  <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 6 }}>{2 + state.circleNames.length} private groups</Text>
+                </View>
+                <ChevronRightIcon />
+              </PressableScale>
+            </RiseIn>
+          </>
+        )}
+
+        {/* GOALS — the full goal list on its own */}
+        {state.commTab === 1 && (
+          <RiseIn delay={60} style={{ paddingHorizontal: 24, marginTop: 18 }}>
+            <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginBottom: 12 }}>
+              {state.joined.filter(Boolean).length} of {COMMUNITY_GOALS.length} joined
             </Text>
-          </View>
-        </RiseIn>
-
-        <RiseIn delay={120} style={{ paddingHorizontal: 24, marginTop: 22 }}>
-          <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary, marginBottom: 12 }}>Community goals</Text>
-          <View style={{ gap: 10 }}>
-            {COMMUNITY_GOALS.map((c, i) => {
-              const joined = state.joined[i];
-              return (
-                <PressableScale
-                  key={c.id}
-                  onPress={() => nav.communityGoal(c.id)}
-                  style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 24, padding: 20, backgroundColor: '#FFFFFF' }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 16.5, fontWeight: '600', color: colors.inkStrong }}>{c.name}</Text>
-                      <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 6 }}>
-                        {c.people} participants · ends {c.ends}
-                      </Text>
-                    </View>
-                    {joined ? (
-                      <View style={{ backgroundColor: colors.bgTint, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 12 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: colors.inkStrong }}>Joined</Text>
-                      </View>
-                    ) : (
-                      <PressableScale onPress={() => joinCommunityGoal(i)} scaleTo={0.92} style={{ backgroundColor: colors.primary, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 12 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#FFFFFF' }}>Join</Text>
-                      </PressableScale>
-                    )}
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 16 }}>
-                    <View style={{ height: 6, flex: 1, borderRadius: 3, backgroundColor: colors.bgTint, overflow: 'hidden' }}>
-                      <View style={{ height: '100%', borderRadius: 3, backgroundColor: '#3D73C9', width: `${c.pct}%` }} />
-                    </View>
-                    <Text style={{ fontSize: 12.5, fontWeight: '600', color: colors.inkMuted }}>{c.pctText}</Text>
-                  </View>
-                  <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 10 }}>
-                    {c.done} / {c.total}
-                  </Text>
-                </PressableScale>
-              );
-            })}
-          </View>
-        </RiseIn>
-
-        <RiseIn delay={170} style={{ paddingHorizontal: 24, marginTop: 12 }}>
-          <PressableScale
-            onPress={nav.circles}
-            style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, padding: 18, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 }}
-          >
-            <View>
-              <Text style={{ fontSize: 15.5, fontWeight: '600', color: colors.inkStrong }}>Your circles</Text>
-              <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 6 }}>2 private groups</Text>
+            {goalsList}
+            <View style={{ marginTop: 12, borderRadius: 22, padding: 17, backgroundColor: colors.goldTint }}>
+              <Text style={{ fontSize: 12.5, lineHeight: 20, color: colors.goldInkDeep }}>
+                A shared total is company on the way, not a claim about reward.
+              </Text>
             </View>
-            <ChevronRightIcon />
-          </PressableScale>
-        </RiseIn>
+          </RiseIn>
+        )}
+
+        {/* FEED — recent activity, framed as contribution not competition */}
+        {state.commTab === 3 && (
+          <RiseIn delay={60} style={{ paddingHorizontal: 24, marginTop: 18 }}>
+            <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary, marginBottom: 12 }}>Recent activity</Text>
+            <View style={{ gap: 8 }}>
+              {FEED.map((f) => (
+                <View key={f.name + f.when} style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 20, padding: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'flex-start', gap: 13 }}>
+                  <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: f.bg, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: colors.inkStrong }}>{f.initial}</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ fontSize: 14.5, lineHeight: 21, color: colors.inkStrong }}>
+                      <Text style={{ fontWeight: '600' }}>{f.name}</Text> {f.action}
+                    </Text>
+                    <Text style={{ fontSize: 11.5, color: colors.inkSecondary, marginTop: 6 }}>
+                      {f.when} · {f.likes} encouragements
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+            <View style={{ marginTop: 12, borderRadius: 22, padding: 17, backgroundColor: colors.bgTint }}>
+              <Text style={{ fontSize: 12.5, lineHeight: 20, color: colors.inkMuted }}>
+                Activity is shown to encourage, never to rank. Nothing here compares one person’s worship to another’s.
+              </Text>
+            </View>
+          </RiseIn>
+        )}
       </ScrollView>
     </View>
   );

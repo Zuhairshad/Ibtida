@@ -37,7 +37,7 @@ export default function ProfileScreen() {
         <RiseIn delay={60} style={{ paddingHorizontal: 24, marginTop: 20 }}>
           <View style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 24, padding: 20, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
             <View>
-              <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary }}>Today's consistency</Text>
+              <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary }}>Today’s consistency</Text>
               <Text style={{ fontSize: 24, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025, marginTop: 11 }}>7 day streak</Text>
             </View>
             <ProgressRing size={56} strokeWidth={5} progress={0.8} trackColor={colors.bgTint} color={colors.success}>

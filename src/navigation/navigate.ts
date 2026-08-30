@@ -45,6 +45,9 @@ export const nav = {
   profile: () => go('Tabs', { screen: 'ProfileTab', params: { screen: 'Profile' } }),
   privacy: () => go('Tabs', { screen: 'ProfileTab', params: { screen: 'Privacy2' } }),
   error: () => go('ErrorState'),
+  search: () => go('Search'),
+  notifications: () => go('Notifications'),
+  circleNew: () => go('CircleNew'),
   back: () => {
     buzz();
     if (navigationRef.isReady() && navigationRef.canGoBack()) navigationRef.goBack();

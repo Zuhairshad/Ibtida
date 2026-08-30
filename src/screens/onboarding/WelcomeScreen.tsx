@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Rect } from 'react-native-svg';
@@ -11,7 +11,7 @@ import SecondaryButton from '../../components/SecondaryButton';
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
-  const glow = useRef(new Animated.Value(0)).current;
+  const [glow] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const loop = Animated.loop(

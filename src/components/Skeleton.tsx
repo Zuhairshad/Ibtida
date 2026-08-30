@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, DimensionValue, View } from 'react-native';
 
 // Shimmering loading placeholder — every screen that fetches data gets a
 // real skeleton variant here, never a bare "Loading..." spinner.
 export function SkeletonBlock({ width, height, radius = 12, style }: { width: DimensionValue; height: number; radius?: number; style?: object }) {
-  const opacity = useRef(new Animated.Value(0.5)).current;
+  const [opacity] = useState(() => new Animated.Value(0.5));
 
   useEffect(() => {
     const loop = Animated.loop(

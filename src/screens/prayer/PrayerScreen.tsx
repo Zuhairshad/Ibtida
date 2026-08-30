@@ -1,6 +1,5 @@
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppState, PRAYER_TIMES } from '../../state/AppState';

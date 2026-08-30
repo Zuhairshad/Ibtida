@@ -31,7 +31,7 @@ export default function ErrorStateScreen() {
           <OfflineIcon />
         </View>
         <Text style={{ fontSize: 18, fontWeight: '600', color: colors.inkStrong }}>Something went wrong</Text>
-        <Text style={{ fontSize: 14.5, lineHeight: 23, color: colors.inkMuted, marginTop: 10, textAlign: 'center' }}>Your progress is safe. We'll try again when you're connected.</Text>
+        <Text style={{ fontSize: 14.5, lineHeight: 23, color: colors.inkMuted, marginTop: 10, textAlign: 'center' }}>Your progress is safe. We’ll try again when you’re connected.</Text>
         <PrimaryButton label="Try again" onPress={nav.home} style={{ marginTop: 18, paddingHorizontal: 26, minHeight: 48, alignSelf: 'center', width: undefined }} />
       </View>
 

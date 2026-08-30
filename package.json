@@ -23,6 +23,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "^57.0.2",
     "react-dom": "^19.2.3",
     "react-native-web": "^0.21.2",
     "typescript": "~6.0.3"
@@ -31,7 +33,10 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "build": "expo export --platform web --output-dir dist"
   },
   "private": true
 }

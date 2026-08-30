@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppState, PRAYER_TIMES } from '../../state/AppState';
@@ -12,7 +12,7 @@ import PressableScale from '../../components/PressableScale';
 import ProgressRing from '../../components/ProgressRing';
 import StreakDotRow from '../../components/StreakDotRow';
 import BarChart from '../../components/BarChart';
-import { BellIcon, PinIcon, ArrowRightIcon, SunriseIcon, SunIcon, DuskIcon, SundownIcon, MoonIcon, CheckIcon } from '../../theme/icons';
+import { BellIcon, PinIcon, ArrowRightIcon, SunriseIcon, SunIcon, DuskIcon, SundownIcon, MoonIcon, CheckIcon, SearchIcon, BookIcon, TimerIcon } from '../../theme/icons';
 
 const TILE_ICON: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
   Fajr: SunriseIcon,
@@ -60,9 +60,24 @@ export default function HomeScreen() {
               </View>
             </View>
           </View>
-          <View style={{ width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' }}>
-            <BellIcon />
-            <View style={{ position: 'absolute', top: 2, right: 3, width: 8, height: 8, borderRadius: 4, backgroundColor: '#E5484D', borderWidth: 1.5, borderColor: '#FFFFFF' }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <PressableScale
+              onPress={nav.search}
+              accessibilityRole="button"
+              accessibilityLabel="Search"
+              style={{ width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <SearchIcon size={19} color="#5B6472" />
+            </PressableScale>
+            <PressableScale
+              onPress={nav.notifications}
+              accessibilityRole="button"
+              accessibilityLabel="Notifications, unread"
+              style={{ width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <BellIcon />
+              <View style={{ position: 'absolute', top: 2, right: 3, width: 8, height: 8, borderRadius: 4, backgroundColor: '#E5484D', borderWidth: 1.5, borderColor: '#FFFFFF' }} />
+            </PressableScale>
           </View>
         </RiseIn>
 
@@ -125,7 +140,7 @@ export default function HomeScreen() {
 
         {/* Today's progress header */}
         <RiseIn delay={150} style={{ paddingHorizontal: 20, marginTop: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#1B2430', letterSpacing: -0.015 }}>Today's Progress</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#1B2430', letterSpacing: -0.015 }}>Today’s Progress</Text>
           <PressableScale onPress={nav.progress} style={{ backgroundColor: colors.primaryTint, borderRadius: 11, paddingVertical: 8, paddingHorizontal: 12 }}>
             <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>View All</Text>
           </PressableScale>
@@ -138,7 +153,7 @@ export default function HomeScreen() {
               <Text style={{ fontSize: 25, fontWeight: '700', color: '#1B2430', letterSpacing: -0.02 }}>{dayPct}%</Text>
             </ProgressRing>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1B2430' }}>Today's Prayers</Text>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1B2430' }}>Today’s Prayers</Text>
               <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 7 }}>{doneCount} of 5 Completed</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 14 }}>
                 <Text style={{ fontSize: 13, fontWeight: '600', color: '#1B2430' }}>Asr 3:40 pm</Text>
@@ -189,6 +204,32 @@ export default function HomeScreen() {
               </PressableScale>
             );
           })}
+        </RiseIn>
+
+        {/* Quick actions — §7 requires Quran to be prominent from Home, and
+            this is the entry point into the Ibadah Focus flow. */}
+        <RiseIn delay={275} style={{ paddingHorizontal: 20, marginTop: 14, flexDirection: 'row', gap: 10 }}>
+          {[
+            { title: 'Quran', sub: 'Al-Baqarah · 72%', Icon: BookIcon, tint: colors.primaryTint, ink: '#2F5CA3', go: nav.quran },
+            { title: 'Ibadah Focus', sub: 'Finish your goal', Icon: TimerIcon, tint: colors.goldTint, ink: colors.goldInk, go: nav.focusSetup },
+          ].map((q) => (
+            <PressableScale
+              key={q.title}
+              onPress={q.go}
+              scaleTo={0.97}
+              accessibilityRole="button"
+              accessibilityLabel={`${q.title}. ${q.sub}`}
+              style={{ flex: 1, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 22, padding: 16, backgroundColor: '#FFFFFF', gap: 10 }}
+            >
+              <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: q.tint, alignItems: 'center', justifyContent: 'center' }}>
+                <q.Icon size={20} color={q.ink} />
+              </View>
+              <View>
+                <Text style={{ fontSize: 14.5, fontWeight: '700', color: '#1B2430' }}>{q.title}</Text>
+                <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 4 }}>{q.sub}</Text>
+              </View>
+            </PressableScale>
+          ))}
         </RiseIn>
 
         {/* Daily Dhikr Streak */}

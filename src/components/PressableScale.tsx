@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useState } from 'react';
 import { Animated, Pressable, PressableProps, StyleProp, StyleSheet, ViewStyle } from 'react-native';
 
 type Props = Omit<PressableProps, 'style' | 'children'> & {
@@ -19,7 +19,7 @@ type Props = Omit<PressableProps, 'style' | 'children'> & {
 // Tasbeeh counter) still propagates — otherwise the unstyled Pressable
 // breaks the flex chain between this node and its flex-column ancestor.
 export default function PressableScale({ style, scaleTo = 0.97, children, ...rest }: Props) {
-  const scale = useRef(new Animated.Value(1)).current;
+  const [scale] = useState(() => new Animated.Value(1));
   const flex = StyleSheet.flatten(style)?.flex;
 
   const onPressIn = () => {

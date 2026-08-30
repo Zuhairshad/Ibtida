@@ -16,8 +16,11 @@ export default function TasbeehScreen() {
   const frac = Math.min(state.count / tasbeehTarget, 1);
 
   const onTap = () => {
-    const completed = tapTasbeeh();
-    if (completed) nav.goalComplete();
+    if (tapTasbeeh()) nav.goalComplete();
+  };
+
+  const onPlusFive = () => {
+    if (plusFive()) nav.goalComplete();
   };
 
   return (
@@ -37,7 +40,7 @@ export default function TasbeehScreen() {
         </PressableScale>
       </View>
 
-      <PressableScale onPress={onTap} scaleTo={0.994} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
+      <PressableScale onPress={onTap} scaleTo={0.994} accessibilityRole="button" accessibilityLabel="Count one dhikr" style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
         <ProgressRing size={272} strokeWidth={6} progress={frac} trackColor="rgba(23,32,28,0.06)" color="#3D73C9">
           <View style={{ alignItems: 'center' }}>
             <Text style={{ fontFamily: 'NotoNaskhArabic_500Medium', fontSize: 20, color: colors.goldInk, marginBottom: 16 }}>سُبْحَانَ اللهِ</Text>
@@ -53,13 +56,15 @@ export default function TasbeehScreen() {
         <View style={{ flexDirection: 'row', gap: 10 }}>
           {[
             { label: 'Undo', onPress: undoTasbeeh },
-            { label: '+5', onPress: plusFive },
+            { label: '+5', onPress: onPlusFive },
             { label: 'Reset', onPress: resetTasbeeh },
           ].map((b) => (
             <PressableScale
               key={b.label}
               onPress={b.onPress}
               scaleTo={0.97}
+              accessibilityRole="button"
+              accessibilityLabel={b.label === '+5' ? 'Add five' : b.label}
               style={{ flex: 1, minHeight: 52, borderWidth: 1, borderColor: 'rgba(23,32,28,0.09)', backgroundColor: '#FFFFFF', padding: 15, borderRadius: 16, alignItems: 'center' }}
             >
               <Text style={{ fontSize: 14, fontWeight: '500', color: colors.inkMuted }}>{b.label}</Text>

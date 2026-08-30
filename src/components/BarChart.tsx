@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, View } from 'react-native';
 import { colors } from '../theme/tokens';
 
 // Mini sparkline bar chart used for community dhikr counts / dhikr-per-day.
 export default function BarChart({ values, height = 44, color = colors.successStrong, barWidth = 7, gap = 3 }: { values: number[]; height?: number; color?: string; barWidth?: number; gap?: number }) {
-  const anims = useRef(values.map(() => new Animated.Value(0))).current;
+  const [anims] = useState(() => values.map(() => new Animated.Value(0)));
 
   useEffect(() => {
     Animated.stagger(

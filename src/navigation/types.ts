@@ -12,6 +12,9 @@ export type RootStackParamList = {
   FocusSetup: undefined;
   FocusActive: undefined;
   ErrorState: undefined;
+  Search: undefined;
+  Notifications: undefined;
+  CircleNew: undefined;
 };
 
 export type TabParamList = {

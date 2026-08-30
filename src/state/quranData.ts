@@ -11,6 +11,19 @@ export const SURAHS = [
   { n: 36, name: 'Ya-Sin', meta: '83 ayat · Makkah', ar: 'يس' },
 ];
 
+export const JUZ = Array.from({ length: 8 }, (_, i) => ({
+  n: i + 1,
+  name: `Juz ${i + 1}`,
+  meta: i === 0 ? 'Al-Fatihah 1 — Al-Baqarah 141' : `Starts in ${['Al-Baqarah', 'Ali ‘Imran', 'An-Nisa', 'Al-Ma’idah', 'Al-An‘am', 'Al-A‘raf', 'Al-Anfal'][i - 1]}`,
+  pct: [100, 100, 64, 0, 0, 0, 0, 0][i],
+}));
+
+export const HISTORY = [
+  { name: 'Al-Baqarah', meta: 'Ayah 183 · 12 minutes', when: 'Today' },
+  { name: 'Al-Kahf', meta: 'Ayah 1–10 · 8 minutes', when: 'Friday' },
+  { name: 'Ya-Sin', meta: 'Complete · 21 minutes', when: 'Tuesday' },
+];
+
 export const AYAT = [183, 184, 185].map((n) => ({
   n,
   translationState: 'Translation loads from the selected licensed translation.',

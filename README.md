@@ -21,12 +21,31 @@ A React Native (Expo) implementation of the Ibadah v5 design handoff — a 22-sc
 
 ```
 npm install
-npm run start   # then press i / a / w, or scan the QR code with Expo Go
+npm run start       # then press i / a / w, or scan the QR code with Expo Go
+npm run typecheck   # tsc --noEmit
+npm run lint        # eslint
+npm run build       # static web export to dist/
 ```
 
 ## Content governance
 
 No Quran verses, hadith text, or religious rulings are invented anywhere in this app (see `src/state/quranData.ts` and the Adhkar session screen) — content awaiting a licensed source shows an explicit "pending source" state instead of placeholder scripture, matching the source design's governance requirement.
+
+## Navigation map
+
+Five tabs, each owning a nested stack so the tab bar stays visible on the
+screens the design keeps it on:
+
+- **Dashboard** — Home, Quran
+- **Prayers** — Prayer
+- **Adhkar** — Adhkar, Goals, Tasbeeh, Progress
+- **Community** — Community, Community goal, Circles
+- **Profile** — Profile, Privacy
+
+Full-screen / modal flows live in the root stack (tab bar hidden): Welcome,
+Intentions, Prayer detail (sheet), Adhkar session, Goal new, Goal complete,
+Quran reader, Focus setup, Focus active, Search, Notifications, New circle,
+Error/offline.
 
 ## Known gaps vs. the full design brief
 

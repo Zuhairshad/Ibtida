@@ -22,6 +22,9 @@ import QuranReaderScreen from './src/screens/quran/QuranReaderScreen';
 import FocusSetupScreen from './src/screens/focus/FocusSetupScreen';
 import FocusActiveScreen from './src/screens/focus/FocusActiveScreen';
 import ErrorStateScreen from './src/screens/shared/ErrorStateScreen';
+import SearchScreen from './src/screens/shared/SearchScreen';
+import NotificationsScreen from './src/screens/shared/NotificationsScreen';
+import CircleNewScreen from './src/screens/community/CircleNewScreen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -62,6 +65,9 @@ export default function App() {
             <Stack.Screen name="FocusSetup" component={FocusSetupScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="FocusActive" component={FocusActiveScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="ErrorState" component={ErrorStateScreen} />
+            <Stack.Screen name="Search" component={SearchScreen} options={{ animation: 'fade' }} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="CircleNew" component={CircleNewScreen} options={{ animation: 'slide_from_bottom' }} />
           </Stack.Navigator>
         </NavigationContainer>
       </AppStateProvider>

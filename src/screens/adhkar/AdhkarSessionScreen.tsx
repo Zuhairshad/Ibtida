@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,11 +7,14 @@ import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
+import Toast from '../../components/Toast';
 import { ChevronLeftIcon, BookmarkIcon, MoreIcon } from '../../theme/icons';
 
 export default function AdhkarSessionScreen() {
   const { state, tapDhikr } = useAppState();
   const insets = useSafeAreaInsets();
+  const [saved, setSaved] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   return (
     <ScreenFade duration={280} style={{ backgroundColor: colors.bgTint }}>
@@ -20,9 +23,29 @@ export default function AdhkarSessionScreen() {
           <ChevronLeftIcon color={colors.inkMuted} />
           <Text style={{ fontSize: 14, fontWeight: '500', color: colors.inkMuted }}>Evening</Text>
         </PressableScale>
-        <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-          <BookmarkIcon size={18} color={colors.inkMuted} />
-          <MoreIcon size={18} color={colors.inkMuted} />
+        <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+          <PressableScale
+            onPress={() => {
+              setSaved((v) => !v);
+              setToast(saved ? 'Removed from your saved adhkar.' : 'Saved to your adhkar.');
+            }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: saved }}
+            accessibilityLabel={saved ? 'Remove from saved adhkar' : 'Save this dhikr'}
+            scaleTo={0.85}
+            style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <BookmarkIcon size={18} color={saved ? colors.goldInk : colors.inkMuted} />
+          </PressableScale>
+          <PressableScale
+            onPress={nav.goalNew}
+            accessibilityRole="button"
+            accessibilityLabel="Make this a daily goal"
+            scaleTo={0.85}
+            style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <MoreIcon size={18} color={colors.inkMuted} />
+          </PressableScale>
         </View>
       </View>
 
@@ -65,6 +88,8 @@ export default function AdhkarSessionScreen() {
           <Text style={{ fontSize: 16, fontWeight: '500', color: 'rgba(248,247,243,0.55)' }}>{state.dhikrReps} / 100</Text>
         </PressableScale>
       </View>
+
+      <Toast message={toast} onDismiss={() => setToast(null)} />
     </ScreenFade>
   );
 }

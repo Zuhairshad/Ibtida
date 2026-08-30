@@ -1,6 +1,6 @@
 // Icon set ported 1:1 from the SVG defs in `Ibadah v5.dc.html`'s SVG object.
 import React from 'react';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 type IconProps = { size?: number; color?: string };
 
