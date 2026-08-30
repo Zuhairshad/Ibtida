@@ -1,27 +1,37 @@
 import React, { useCallback, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Platform, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useAuth } from '../../state/AuthContext';
 import { FOCUS_DURATIONS } from '../../state/AppState';
-import { getFocusSettings, toggleFocusApp, cycleFocusDuration } from '../../services/focus';
-import { listGoals } from '../../services/adhkar';
+import { getFocusSettings, cycleFocusDuration } from '../../services/focus';
+import { listGoals, type AdhkarGoal } from '../../services/adhkar';
+import { listBlockedApps, addBlockedApp, removeBlockedApp, type BlockedApp, type AppPlatform } from '../../services/ibadahLock';
+import { pickAppsToBlock, isAppBlockingSupported } from '../../../modules/expo-ibadah-native';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import SecondaryButton from '../../components/SecondaryButton';
 import PrimaryButton from '../../components/PrimaryButton';
+import EmptyState from '../../components/EmptyState';
 import { SkeletonBlock } from '../../components/Skeleton';
 import Toast from '../../components/Toast';
-import { ChevronRightIcon, CheckIcon } from '../../theme/icons';
+import { ChevronRightIcon, CheckIcon, PlusIcon } from '../../theme/icons';
 
-const RESTRICT_APPS = ['Instagram', 'TikTok', 'YouTube', 'Facebook'];
+// The current platform, typed to match blocked_apps.platform / BlockedApp's
+// AppPlatform union — 'web' (Expo web / a plain browser preview) has no
+// blocking mechanism at all, so it's mapped to 'android' only for the shape
+// of addBlockedApp's call; isAppBlockingSupported() is what actually gates
+// whether that call path is ever reached.
+const CURRENT_PLATFORM: AppPlatform = Platform.OS === 'ios' ? 'ios' : 'android';
 
-// Seeds a brand-new user's focus_settings row so first-run UX matches the
-// old AppState.initialState default (all four apps pre-selected).
-const DEFAULT_BLOCKED_APPS = RESTRICT_APPS.reduce<Record<string, boolean>>((acc, a) => ({ ...acc, [a]: true }), {});
+// This platform/build's capability is fixed for the life of the app process
+// (it depends on whether a native dev client with the real module is
+// running, not on anything that changes at runtime), so it's read once at
+// module scope rather than re-checked on every render.
+const BLOCKING_SUPPORTED = isAppBlockingSupported();
 
 // Platform capability layer per §21 — never assumes identical capability on
 // iOS vs Android, and calls out emergency access explicitly.
@@ -29,17 +39,13 @@ export default function FocusSetupScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
-  const [blockedApps, setBlockedApps] = useState<Record<string, boolean>>({});
   const [durationIndex, setDurationIndex] = useState(0);
-  // The worship-goal target shown here comes from the user's most recent
-  // Adhkar goal (`adhkar_goals`, via services/adhkar.listGoals) — there is no
-  // dedicated "focus goal" column, and AppState's old `newTarget` field is now
-  // dead (GoalNewScreen keeps its target as fully local form state and never
-  // wrote it back to AppState), so reading it here would always show the
-  // stale initial value of 100. Falls back to 100 when the user has no goals.
-  const [goalTarget, setGoalTarget] = useState(100);
+  const [goals, setGoals] = useState<AdhkarGoal[]>([]);
+  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
+  const [blockedApps, setBlockedApps] = useState<BlockedApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [pickingApps, setPickingApps] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useFocusEffect(
@@ -47,13 +53,18 @@ export default function FocusSetupScreen() {
       if (!user) return;
       let active = true;
       setLoading(true);
-      Promise.all([getFocusSettings(user.id, DEFAULT_BLOCKED_APPS), listGoals(user.id)])
-        .then(([s, goals]) => {
+      Promise.all([getFocusSettings(user.id), listGoals(user.id), listBlockedApps(user.id)])
+        .then(([s, goalList, apps]) => {
           if (!active) return;
-          setBlockedApps(s.blockedApps);
           setDurationIndex(s.durationIndex);
-          const active_ = goals.find((g) => !g.completedAt) ?? goals[0];
-          if (active_) setGoalTarget(active_.target);
+          setGoals(goalList);
+          setBlockedApps(apps);
+          // Default to the most recently created still-open goal — the user
+          // can pick a different one below before activating.
+          setSelectedGoalId((prev) => {
+            if (prev && goalList.some((g) => g.id === prev && !g.completedAt)) return prev;
+            return goalList.find((g) => !g.completedAt)?.id ?? null;
+          });
         })
         .catch(() => active && setToast('Could not load your focus settings.'))
         .finally(() => active && setLoading(false));
@@ -63,17 +74,9 @@ export default function FocusSetupScreen() {
     }, [user])
   );
 
-  const selectedCount = RESTRICT_APPS.filter((a) => blockedApps[a]).length;
-
-  const onToggleApp = (name: string) => {
-    if (!user || busy) return;
-    const prev = blockedApps;
-    setBlockedApps((b) => ({ ...b, [name]: !b[name] }));
-    toggleFocusApp(user.id, name, DEFAULT_BLOCKED_APPS).catch(() => {
-      setBlockedApps(prev);
-      setToast('Could not save that change.');
-    });
-  };
+  const openGoals = goals.filter((g) => !g.completedAt);
+  const selectedGoal = goals.find((g) => g.id === selectedGoalId) ?? null;
+  const platformApps = blockedApps.filter((a) => a.platform === CURRENT_PLATFORM);
 
   const onCycleDuration = () => {
     if (!user || busy) return;
@@ -84,12 +87,42 @@ export default function FocusSetupScreen() {
       .finally(() => setBusy(false));
   };
 
+  const onPickApps = async () => {
+    if (!user || pickingApps || !BLOCKING_SUPPORTED) return;
+    setPickingApps(true);
+    try {
+      const picked = await pickAppsToBlock();
+      await Promise.all(picked.map((ref) => addBlockedApp(user.id, CURRENT_PLATFORM, ref.id, ref.label)));
+      const refreshed = await listBlockedApps(user.id);
+      setBlockedApps(refreshed);
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : 'Could not open the app picker.');
+    } finally {
+      setPickingApps(false);
+    }
+  };
+
+  const onRemoveApp = (app: BlockedApp) => {
+    if (!user) return;
+    const prev = blockedApps;
+    setBlockedApps((apps) => apps.filter((a) => a.id !== app.id));
+    removeBlockedApp(user.id, app.id).catch(() => {
+      setBlockedApps(prev);
+      setToast('Could not remove that app.');
+    });
+  };
+
+  const onActivate = () => {
+    if (!selectedGoal) return;
+    nav.focusActive(selectedGoal.id, selectedGoal.target);
+  };
+
   return (
     <ScreenFade duration={300} style={{ backgroundColor: colors.bg, paddingTop: insets.top + 12 }}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 34 }} showsVerticalScrollIndicator={false}>
         <SecondaryButton label="Close" onPress={nav.back} style={{ alignSelf: 'flex-start' }} />
-        <Text style={{ fontSize: 27, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025, marginTop: 12 }}>Ibadah Focus</Text>
-        <Text style={{ fontSize: 15, lineHeight: 23, color: colors.inkMuted, marginTop: 9 }}>Choose your worship goal. Your phone stays quiet until you finish it.</Text>
+        <Text style={{ fontSize: 27, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025, marginTop: 12 }}>Ibadah Lock</Text>
+        <Text style={{ fontSize: 15, lineHeight: 23, color: colors.inkMuted, marginTop: 9 }}>Choose your worship goal and the apps that stay out of reach until you finish it.</Text>
 
         {loading ? (
           <View style={{ marginTop: 18, gap: 12 }}>
@@ -98,28 +131,74 @@ export default function FocusSetupScreen() {
           </View>
         ) : (
           <>
-            <View style={{ marginTop: 18, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
-              <PressableScale
-                onPress={nav.goalNew}
-                scaleTo={1}
-                accessibilityRole="button"
-                accessibilityLabel={`Worship goal, Durood Sharif ${goalTarget}. Double tap to change.`}
-                style={{ padding: 18, borderBottomWidth: 1, borderColor: colors.cardBorder, minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-              >
-                <Text style={{ fontSize: 15.5, fontWeight: '500', color: colors.inkStrong }}>Worship goal</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 14, color: colors.inkMuted }}>Durood Sharif · {goalTarget}</Text>
-                  <ChevronRightIcon />
+            <View style={{ marginTop: 18 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.inkSecondary, marginBottom: 10 }}>Worship goal</Text>
+              {openGoals.length === 0 ? (
+                <EmptyState
+                  icon={<PlusIcon />}
+                  title="No open goals yet"
+                  subtitle="Create an Adhkar goal to link this session to — finishing it is what unlocks your blocked apps."
+                  actionLabel="Create goal"
+                  onAction={nav.goalNew}
+                />
+              ) : (
+                <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
+                  {openGoals.map((g, i) => {
+                    const selected = g.id === selectedGoalId;
+                    return (
+                      <PressableScale
+                        key={g.id}
+                        onPress={() => setSelectedGoalId(g.id)}
+                        scaleTo={1}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected }}
+                        accessibilityLabel={`${g.title}, target ${g.target}`}
+                        style={{
+                          padding: 18,
+                          borderBottomWidth: i === openGoals.length - 1 ? 0 : 1,
+                          borderColor: colors.cardBorder,
+                          minHeight: 52,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          backgroundColor: selected ? colors.primaryTint : 'transparent',
+                        }}
+                      >
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={{ fontSize: 15.5, fontWeight: '500', color: colors.inkStrong }} numberOfLines={1}>
+                            {g.title}
+                          </Text>
+                          <Text style={{ fontSize: 12.5, color: colors.inkMuted, marginTop: 4 }}>Target {g.target}</Text>
+                        </View>
+                        <View
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 11,
+                            borderWidth: selected ? 0 : 1.5,
+                            borderColor: colors.cardBorderStrong,
+                            backgroundColor: selected ? colors.primary : 'transparent',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {selected && <CheckIcon size={11} color="#fff" />}
+                        </View>
+                      </PressableScale>
+                    );
+                  })}
                 </View>
-              </PressableScale>
+              )}
+            </View>
 
+            <View style={{ marginTop: 18, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
               <PressableScale
                 onPress={onCycleDuration}
                 disabled={busy}
                 scaleTo={1}
                 accessibilityRole="button"
                 accessibilityLabel={`Focus duration, ${FOCUS_DURATIONS[durationIndex]}. Double tap to change.`}
-                style={{ padding: 18, borderBottomWidth: 1, borderColor: colors.cardBorder, minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', opacity: busy ? 0.6 : 1 }}
+                style={{ padding: 18, minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', opacity: busy ? 0.6 : 1 }}
               >
                 <Text style={{ fontSize: 15.5, fontWeight: '500', color: colors.inkStrong }}>Focus duration</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -127,71 +206,77 @@ export default function FocusSetupScreen() {
                   <ChevronRightIcon />
                 </View>
               </PressableScale>
+            </View>
 
-              <View style={{ padding: 18 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ fontSize: 15.5, fontWeight: '500', color: colors.inkStrong }}>Apps to restrict</Text>
-                  <Text style={{ fontSize: 14, color: colors.inkMuted }}>{selectedCount} selected</Text>
-                </View>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 14 }}>
-                  {RESTRICT_APPS.map((a) => {
-                    const on = blockedApps[a];
-                    return (
-                      <PressableScale
-                        key={a}
-                        onPress={() => onToggleApp(a)}
-                        scaleTo={0.94}
-                        accessibilityRole="checkbox"
-                        accessibilityState={{ checked: on }}
-                        accessibilityLabel={a}
-                        style={{
-                          backgroundColor: on ? colors.primaryTint : colors.bgTint,
-                          borderWidth: 1,
-                          borderColor: on ? 'rgba(61,115,201,0.35)' : 'transparent',
-                          paddingVertical: 9,
-                          paddingHorizontal: 12,
-                          borderRadius: 12,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 6,
-                        }}
-                      >
-                        {on && <CheckIcon size={10} color={colors.primary} />}
-                        <Text style={{ fontSize: 12.5, fontWeight: '500', color: on ? colors.primary : colors.inkMuted }}>{a}</Text>
-                      </PressableScale>
-                    );
-                  })}
-                </View>
+            <View style={{ marginTop: 12, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', padding: 18 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 15.5, fontWeight: '500', color: colors.inkStrong }}>Apps to restrict</Text>
+                <Text style={{ fontSize: 14, color: colors.inkMuted }}>{platformApps.length} selected</Text>
               </View>
+
+              {!BLOCKING_SUPPORTED && (
+                <Text style={{ fontSize: 12.5, lineHeight: 19, color: colors.inkMuted, marginTop: 10 }}>
+                  App blocking isn’t available on this device yet. You can still pick a worship goal — restricting apps will turn on once support lands here.
+                </Text>
+              )}
+
+              {platformApps.length > 0 && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 14 }}>
+                  {platformApps.map((a) => (
+                    <View
+                      key={a.id}
+                      style={{
+                        backgroundColor: colors.primaryTint,
+                        borderWidth: 1,
+                        borderColor: 'rgba(61,115,201,0.35)',
+                        paddingVertical: 9,
+                        paddingLeft: 12,
+                        paddingRight: 8,
+                        borderRadius: 12,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                    >
+                      <Text style={{ fontSize: 12.5, fontWeight: '500', color: colors.primary }} numberOfLines={1}>
+                        {a.displayName ?? (Platform.OS === 'ios' ? 'Restricted app' : a.appIdentifier)}
+                      </Text>
+                      <PressableScale
+                        onPress={() => onRemoveApp(a)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${a.displayName ?? 'this app'} from restricted apps`}
+                        scaleTo={0.85}
+                        style={{ width: 16, height: 16, alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary, lineHeight: 14 }}>×</Text>
+                      </PressableScale>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              <SecondaryButton
+                label={pickingApps ? 'Opening picker…' : 'Choose apps'}
+                onPress={onPickApps}
+                style={{ marginTop: 14, alignSelf: 'flex-start', opacity: !BLOCKING_SUPPORTED || pickingApps ? 0.5 : 1 }}
+              />
+
+              <Text style={{ fontSize: 12, lineHeight: 18, color: colors.inkSecondary, marginTop: 10 }}>
+                {Platform.OS === 'ios'
+                  ? 'Apple’s picker keeps app names private from every app, including this one — restricted apps show as “Restricted app” but blocking still works.'
+                  : 'Shows your installed apps by name so you know exactly what you’re restricting.'}
+              </Text>
             </View>
 
             <View style={{ marginTop: 12, borderRadius: 24, padding: 20, backgroundColor: colors.primaryTint, borderWidth: 1, borderColor: 'rgba(61,115,201,0.2)' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#2F5CA3' }} />
-                <Text style={{ fontSize: 13, fontWeight: '600', color: '#1F3E63' }}>Platform capability</Text>
-              </View>
-              <View style={{ gap: 10, marginTop: 14 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
-                  <View style={{ backgroundColor: 'rgba(255,255,255,0.75)', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8, minWidth: 52, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 11, fontWeight: '600', color: '#1F3E63' }}>iOS</Text>
-                  </View>
-                  <Text style={{ flex: 1, fontSize: 12.5, lineHeight: 20, color: '#3A5A7E' }}>Screen Time authorisation required. Apple’s own limiter shields the apps you choose.</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
-                  <View style={{ backgroundColor: 'rgba(255,255,255,0.75)', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8, minWidth: 52, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 11, fontWeight: '600', color: '#1F3E63' }}>Android</Text>
-                  </View>
-                  <Text style={{ flex: 1, fontSize: 12.5, lineHeight: 20, color: '#3A5A7E' }}>Usage Access required. Fallback is a full-screen reminder when a restricted app opens.</Text>
-                </View>
-              </View>
-              <Text style={{ fontSize: 12.5, lineHeight: 20, color: '#3A5A7E', marginTop: 14, paddingTop: 13, borderTopWidth: 1, borderColor: 'rgba(61,115,201,0.18)' }}>
-                Calls, messages and emergency services remain available on both platforms.
+              <Text style={{ fontSize: 12.5, lineHeight: 20, color: '#3A5A7E' }}>
+                Calls, messages and emergency services remain available on both platforms. An “Emergency unlock” is always one tap away once a session starts.
               </Text>
             </View>
           </>
         )}
 
-        <PrimaryButton label="Activate Focus" onPress={nav.focusActive} disabled={loading} style={{ marginTop: 16 }} />
+        <PrimaryButton label="Activate Ibadah Lock" onPress={onActivate} disabled={loading || !selectedGoal} style={{ marginTop: 16 }} />
       </ScrollView>
 
       <Toast message={toast} onDismiss={() => setToast(null)} />

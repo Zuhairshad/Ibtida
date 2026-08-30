@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { RootStackParamList } from '../../navigation/types';
-import { useAppState, PRAYER_TIMES, PrayerName } from '../../state/AppState';
+import { useAppState, PrayerName } from '../../state/AppState';
 import { useAuth } from '../../state/AuthContext';
 import * as PrayerService from '../../services/prayers';
+import * as PrayerSettingsService from '../../services/prayerSettings';
+import type { PrayerCalcSettings } from '../../services/prayerSettings';
+import { classifyPrayersForDate, computePrayerTimes, formatPrayerTime, type PrayerClassification } from '../../lib/prayerTimes';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import BottomSheetModal from '../../components/BottomSheetModal';
@@ -23,14 +26,13 @@ const LOG_MODES = ['Missed', 'On time', "In jama’ah"];
 // This sheet has no date param (route only carries `prayerName`) — it always
 // reads/writes today's log, same as AppState's old single "today" snapshot.
 const today = PrayerService.todayISODate();
+const todayDate = new Date();
 
 export default function PrayerDetailScreen({ route }: Props) {
   const { prayerName } = route.params;
   const { state, setLogMode } = useAppState();
   const { user } = useAuth();
-
-  const prayer = PRAYER_TIMES.find((p) => p.name === prayerName) ?? PRAYER_TIMES[3];
-  const name = prayer.name as PrayerName;
+  const name = prayerName as PrayerName;
 
   const [isLogged, setIsLogged] = useState(false);
   const [adhanOn, setAdhanOn] = useState(true);
@@ -42,6 +44,54 @@ export default function PrayerDetailScreen({ route }: Props) {
   // synchronously inside the fetch effect below.
   const [loadedName, setLoadedName] = useState<PrayerName | null>(null);
   const loading = loadedName !== name;
+
+  // Reads the location/calc-method settings PrayerScreen already bootstrapped
+  // (a user only ever reaches this sheet by tapping a row there, so a
+  // settings row should already exist). If it somehow doesn't yet, this
+  // sheet degrades to "time unknown, nothing loggable" rather than prompting
+  // for location permission a second time.
+  const [calcSettings, setCalcSettings] = useState<PrayerCalcSettings | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    PrayerSettingsService.getPrayerCalcSettings(user.id)
+      .then((s) => {
+        if (!cancelled) setCalcSettings(s);
+      })
+      .catch(() => {
+        // Non-fatal here — PrayerScreen surfaces the real location error;
+        // this sheet just falls back to "Upcoming" (safest — never allows
+        // logging a prayer it can't confirm has started).
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const times = useMemo(
+    () => (calcSettings ? computePrayerTimes(calcSettings.latitude, calcSettings.longitude, calcSettings.calculationMethod, calcSettings.madhab, todayDate) : null),
+    [calcSettings]
+  );
+  const classification: PrayerClassification | null = useMemo(
+    () =>
+      calcSettings
+        ? classifyPrayersForDate(calcSettings.latitude, calcSettings.longitude, calcSettings.calculationMethod, calcSettings.madhab, todayDate, new Date())[name]
+        : null,
+    [calcSettings, name]
+  );
+  // Fail safe: unknown settings/classification never allows logging — only
+  // a confirmed 'current' or 'done' (missed-so-far, i.e. qada) window does.
+  const upcoming = classification === null || classification === 'upcoming';
+
+  const timeLabel = times && calcSettings ? formatPrayerTime(times[name.toLowerCase() as 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'], calcSettings.timezone) : '—:—';
+  const endsAtLabel = (() => {
+    if (!times || !calcSettings) return '—:—';
+    const order: (keyof typeof times)[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
+    const idx = order.indexOf(name.toLowerCase() as keyof typeof times);
+    const nextKey = order[idx + 1];
+    return nextKey ? formatPrayerTime(times[nextKey], calcSettings.timezone) : formatPrayerTime(times.fajr, calcSettings.timezone);
+  })();
 
   useEffect(() => {
     if (!user) return;
@@ -63,17 +113,18 @@ export default function PrayerDetailScreen({ route }: Props) {
     };
   }, [user, name]);
 
-  // Status badge reflects this prayer's real state, not a hardcoded "Current".
+  // Status badge reflects this prayer's real time-window state, not a
+  // hardcoded "Current".
   const status = isLogged
     ? { label: 'Logged', bg: colors.successTint, ink: '#2F6B45' }
-    : prayer.state === 'current'
+    : classification === 'current'
       ? { label: 'Current', bg: colors.primaryTint, ink: '#1F3E63' }
-      : prayer.state === 'done'
+      : classification === 'done'
         ? { label: 'Missed', bg: 'rgba(201,107,107,0.13)', ink: colors.dangerInk }
         : { label: 'Upcoming', bg: colors.bgTint, ink: colors.inkMuted };
 
   const onMark = async () => {
-    if (!user || marking) return;
+    if (!user || marking || (upcoming && !isLogged)) return;
     setMarking(true);
     try {
       const next = await PrayerService.togglePrayer(user.id, name, today);
@@ -106,9 +157,9 @@ export default function PrayerDetailScreen({ route }: Props) {
     <BottomSheetModal visible onClose={nav.back}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <View>
-          <Text style={{ fontSize: 24, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.02 }}>{prayer.name}</Text>
+          <Text style={{ fontSize: 24, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.02 }}>{name}</Text>
           <Text style={{ fontSize: 14, color: colors.inkMuted, marginTop: 8 }}>
-            {prayer.time} · ends {prayer.endsAt}
+            {timeLabel} · ends {endsAtLabel}
           </Text>
         </View>
         {loading ? (
@@ -180,7 +231,14 @@ export default function PrayerDetailScreen({ route }: Props) {
         <Toggle on={adhanOn} />
       </PressableScale>
 
-      <PrimaryButton label={isLogged ? 'Remove log' : 'Mark as prayed'} onPress={onMark} disabled={loading} loading={marking} style={{ marginTop: 16 }} />
+      {/* THE ACTUAL BUG FIX: a prayer whose time window hasn't started yet
+          (classification 'upcoming') can't be marked as prayed — a past
+          'done'-window or a 'current' prayer still can, including logging a
+          missed one late (legitimate qada). */}
+      {upcoming && !isLogged && (
+        <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 10, textAlign: 'center' }}>{name} hasn’t started yet — check back at {timeLabel}.</Text>
+      )}
+      <PrimaryButton label={isLogged ? 'Remove log' : 'Mark as prayed'} onPress={onMark} disabled={loading || (upcoming && !isLogged)} loading={marking} style={{ marginTop: 16 }} />
       <SecondaryButton label="Cancel" onPress={nav.back} style={{ marginTop: 2 }} />
       <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />
     </BottomSheetModal>

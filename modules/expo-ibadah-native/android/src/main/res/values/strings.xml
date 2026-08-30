@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Shown to the user inside Android Settings > Accessibility, next to
+      this service's toggle — required content, not decorative, since this
+      is exactly the disclosure Play Store review looks for on an
+      AccessibilityService used for a non-traditional-accessibility purpose
+      (see this module's README/report re: Play Store policy).
+    -->
+    <string name="ibadah_accessibility_service_description">Lets Ibadah detect when you open an app you\'ve chosen to block, so it can redirect you back and help you stay on track. Ibadah does not read screen content — it only checks which app package is in the foreground.</string>
+</resources>

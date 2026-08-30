@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["IbadahNativeModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.ibadahnative.IbadahNativeModule"]
+  }
+}

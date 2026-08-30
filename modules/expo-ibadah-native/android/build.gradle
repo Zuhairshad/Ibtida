@@ -1,0 +1,28 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.ibadahnative'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.ibadahnative"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // NotificationCompat/NotificationManagerCompat, ContextCompat, and the
+  // SharedPreferences.edit{} extension used by the wake-alarm files
+  // (WakeAlarmRingingService.kt, WakeAlarmController.kt, WakeAlarmPrefs.kt).
+  // Version matches what sibling first-party Expo modules already resolve
+  // to elsewhere in this project (expo-modules-core, expo-camera, etc.) to
+  // avoid an avoidable second resolved version in the dependency graph.
+  implementation "androidx.core:core-ktx:1.17.0"
+}

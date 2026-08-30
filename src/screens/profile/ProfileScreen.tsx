@@ -78,6 +78,7 @@ export default function ProfileScreen() {
     { label: 'Circles', value: '2', go: nav.circles },
     { label: 'Settings', value: 'MWL · Hanafi', go: nav.privacy },
     { label: 'Privacy', value: profileVisibility, go: nav.privacy },
+    { label: 'Emergency unlock history', value: 'Ibadah Lock', go: nav.emergencyHistory },
   ];
 
   if (loadState === 'loading') {

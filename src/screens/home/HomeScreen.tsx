@@ -1,11 +1,15 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Location from 'expo-location';
 
-import { useAppState, PRAYER_TIMES, PrayerName } from '../../state/AppState';
+import { useAppState, PrayerName } from '../../state/AppState';
 import { useAuth } from '../../state/AuthContext';
 import * as PrayerService from '../../services/prayers';
+import * as PrayerSettingsService from '../../services/prayerSettings';
+import type { PrayerCalcSettings } from '../../services/prayerSettings';
+import { classifyPrayersForDate, computePrayerTimes, formatCoordinates, formatPrayerTime, getPrayerCountdownWindow } from '../../lib/prayerTimes';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
@@ -28,15 +32,91 @@ const TILE_ICON: Record<string, React.ComponentType<{ size?: number; color?: str
 const STREAK_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 const TODAY = PrayerService.todayISODate();
+const TODAY_DATE = new Date();
 
 export default function HomeScreen() {
-  const { state } = useAppState();
+  const { state, setSecs } = useAppState();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
   const [logged, setLogged] = useState<Record<PrayerName, boolean> | null>(null);
   const [busy, setBusy] = useState<Set<PrayerName>>(new Set());
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // Real location + calculation settings — same get-or-request-permission
+  // bootstrap as PrayerScreen (both are independent entry points into the
+  // app, so both fetch/create the settings row rather than assuming the
+  // other has already run).
+  const [calcSettings, setCalcSettings] = useState<PrayerCalcSettings | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      setSettingsLoading(true);
+      try {
+        let settings = await PrayerSettingsService.getPrayerCalcSettings(user.id);
+        if (!settings) {
+          const perm = await Location.requestForegroundPermissionsAsync();
+          if (!perm.granted) {
+            if (!cancelled) setSettingsLoading(false);
+            return;
+          }
+          const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          await PrayerSettingsService.setLocation(user.id, position.coords.latitude, position.coords.longitude, timezone);
+          settings = await PrayerSettingsService.getPrayerCalcSettings(user.id);
+        }
+        if (!cancelled) {
+          setCalcSettings(settings);
+          setSettingsLoading(false);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setSettingsLoading(false);
+          setToastMsg(e instanceof Error ? e.message : 'Could not determine your location.');
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const times = useMemo(
+    () => (calcSettings ? computePrayerTimes(calcSettings.latitude, calcSettings.longitude, calcSettings.calculationMethod, calcSettings.madhab, TODAY_DATE) : null),
+    [calcSettings]
+  );
+  const classification = useMemo(
+    () =>
+      calcSettings
+        ? classifyPrayersForDate(calcSettings.latitude, calcSettings.longitude, calcSettings.calculationMethod, calcSettings.madhab, TODAY_DATE, new Date())
+        : null,
+    [calcSettings]
+  );
+  const countdown = useMemo(
+    () => (calcSettings ? getPrayerCountdownWindow(calcSettings.latitude, calcSettings.longitude, calcSettings.calculationMethod, calcSettings.madhab) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [calcSettings, state.secs]
+  );
+
+  // Seed/resync AppState's countdown ticker with the real seconds-until-
+  // next-prayer, same as PrayerScreen — harmless if both screens are mounted
+  // at once (bottom-tabs keeps inactive tabs alive), since both compute the
+  // same real value from the same saved settings.
+  useEffect(() => {
+    if (!calcSettings) return;
+    const window = getPrayerCountdownWindow(calcSettings.latitude, calcSettings.longitude, calcSettings.calculationMethod, calcSettings.madhab);
+    setSecs(window.secondsRemaining);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calcSettings]);
+  useEffect(() => {
+    if (!calcSettings || state.secs !== 0) return;
+    const window = getPrayerCountdownWindow(calcSettings.latitude, calcSettings.longitude, calcSettings.calculationMethod, calcSettings.madhab);
+    setSecs(window.secondsRemaining);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calcSettings, state.secs]);
 
   useEffect(() => {
     if (!user) return;
@@ -58,6 +138,11 @@ export default function HomeScreen() {
   const handleTilePress = useCallback(
     async (name: PrayerName) => {
       if (!user || busy.has(name)) return;
+      // THE ACTUAL BUG FIX: a prayer whose time window hasn't started yet
+      // can't be tapped done from the Home tiles either — only Sunrise used
+      // to be excluded here, which let e.g. Maghrib be marked "done" hours
+      // before it starts.
+      if (classification?.[name] === 'upcoming') return;
       const prevVal = logged?.[name] ?? false;
       setLogged((l) => (l ? { ...l, [name]: !prevVal } : l));
       setBusy((b) => new Set(b).add(name));
@@ -75,13 +160,15 @@ export default function HomeScreen() {
         });
       }
     },
-    [user, busy, logged]
+    [user, busy, logged, classification]
   );
 
-  const dailyPrayers = PRAYER_TIMES.filter((p) => p.state !== 'sunrise');
-  const doneCount = logged ? dailyPrayers.filter((p) => logged[p.name as PrayerName]).length : 0;
+  const dailyPrayers = PrayerService.PRAYER_NAMES;
+  const doneCount = logged ? dailyPrayers.filter((p) => logged[p]).length : 0;
   const dayPct = Math.round((doneCount / 5) * 100);
   const impactText = state.impact.toLocaleString('en-US');
+  const locationLabel = calcSettings ? formatCoordinates(calcSettings.latitude, calcSettings.longitude) : settingsLoading ? 'Locating…' : 'Location unavailable';
+  const nextRingProgress = countdown ? Math.max(0, Math.min(1, 1 - countdown.secondsRemaining / countdown.totalSeconds)) : 0;
 
   if (state.booting || !logged) {
     return (
@@ -106,7 +193,7 @@ export default function HomeScreen() {
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
                 <PinIcon />
-                <Text style={{ fontSize: 12.5, color: colors.inkSecondary }}>Lahore, Pakistan</Text>
+                <Text style={{ fontSize: 12.5, color: colors.inkSecondary }}>{locationLabel}</Text>
               </View>
             </View>
           </View>
@@ -206,9 +293,11 @@ export default function HomeScreen() {
               <Text style={{ fontSize: 15, fontWeight: '700', color: '#1B2430' }}>Today’s Prayers</Text>
               <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 7 }}>{doneCount} of 5 Completed</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 14 }}>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: '#1B2430' }}>Asr 3:40 pm</Text>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#1B2430' }}>
+                  {countdown && calcSettings ? `${countdown.name} ${formatPrayerTime(countdown.end, calcSettings.timezone)}` : '—'}
+                </Text>
                 <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: '#EDF0F4', overflow: 'hidden' }}>
-                  <View style={{ height: '100%', width: '78%', borderRadius: 3, backgroundColor: '#4E8FE0' }} />
+                  <View style={{ height: '100%', width: `${Math.round(nextRingProgress * 100)}%`, borderRadius: 3, backgroundColor: '#4E8FE0' }} />
                 </View>
               </View>
               <Text style={{ fontSize: 11.5, color: colors.inkSecondary, marginTop: 9 }}>
@@ -220,16 +309,16 @@ export default function HomeScreen() {
 
         {/* Prayer tiles */}
         <RiseIn delay={250} style={{ paddingHorizontal: 20, marginTop: 12, flexDirection: 'row', gap: 7 }}>
-          {dailyPrayers.map((p) => {
-            const name = p.name as PrayerName;
+          {dailyPrayers.map((name) => {
             const done = !!logged[name];
-            const current = p.name === 'Asr';
-            const Icon = TILE_ICON[p.name] ?? SunIcon;
+            const current = classification?.[name] === 'current';
+            const upcoming = classification?.[name] === 'upcoming';
+            const Icon = TILE_ICON[name] ?? SunIcon;
             return (
               <PressableScale
-                key={p.name}
+                key={name}
                 onPress={() => handleTilePress(name)}
-                disabled={busy.has(name)}
+                disabled={busy.has(name) || (upcoming && !done)}
                 style={{
                   flex: 1,
                   minWidth: 0,
@@ -241,12 +330,14 @@ export default function HomeScreen() {
                   backgroundColor: current ? colors.successTintStrong : '#FFFFFF',
                   alignItems: 'center',
                   gap: 6,
-                  opacity: busy.has(name) ? 0.6 : 1,
+                  opacity: busy.has(name) ? 0.6 : upcoming && !done ? 0.55 : 1,
                 }}
               >
                 <Icon size={20} color={current ? '#4CA96B' : '#8A93A0'} />
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#1B2430' }}>{p.short}</Text>
-                <Text style={{ fontSize: 12, color: '#5C6673' }}>{p.time.replace(' AM', ' am').replace(' PM', ' pm')}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#1B2430' }}>{name}</Text>
+                <Text style={{ fontSize: 12, color: '#5C6673' }}>
+                  {times && calcSettings ? formatPrayerTime(times[name.toLowerCase() as 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'], calcSettings.timezone) : '—:—'}
+                </Text>
                 {done ? (
                   <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: colors.successStrong, alignItems: 'center', justifyContent: 'center' }}>
                     <CheckIcon size={9} />

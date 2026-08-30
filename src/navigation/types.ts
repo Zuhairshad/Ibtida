@@ -10,11 +10,24 @@ export type RootStackParamList = {
   GoalComplete: undefined;
   QuranReader: undefined;
   FocusSetup: undefined;
-  FocusActive: undefined;
+  // `goalId`/`target` are set for a goal-locked ("Ibadah Lock") session
+  // started from FocusSetupScreen's goal picker; omitted for a plain,
+  // unlocked focus session (no app-blocking, no linked adhkar_goals row —
+  // see src/services/ibadahLock.ts's startGoalLockedSession vs
+  // focus.ts's startFocusSession).
+  FocusActive: { goalId: string; target: number } | undefined;
   ErrorState: undefined;
   Search: undefined;
   Notifications: undefined;
   CircleNew: undefined;
+  // Own-eyes-only log of past "Ibadah Lock" emergency unlocks — see
+  // src/services/ibadahLock.ts's getOverrideHistory.
+  EmergencyHistory: undefined;
+  // Wake-verified prayer alarm (iOS/Android notification fallback) — see
+  // src/services/wakeAlarmScheduling.ts and src/screens/shared/*.
+  WakeAlarmSettings: undefined;
+  PrayerMatTag: { prayerName: string };
+  WakeScan: { prayerName: string; alarmDate: string };
 };
 
 export type TabParamList = {

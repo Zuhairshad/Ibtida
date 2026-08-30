@@ -8,7 +8,10 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSupportsTimeSensitiveNotifications": true
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +26,23 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Ibtida uses your camera to scan the QR tag on your prayer mat, confirming you're awake for the wake-verification alarm.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Ibtida uses your location to calculate accurate prayer times and Qibla direction."
+        }
+      ],
+      "expo-notifications",
+      "./plugins/withIbadahAndroidManifest"
     ]
   }
 }

@@ -1,0 +1,107 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Wake-alarm permissions. See WakeAlarmScheduler.kt's class doc comment
+      for why SCHEDULE_EXACT_ALARM (not USE_EXACT_ALARM) is the correct,
+      Play-policy-safe choice for this app. RECEIVE_BOOT_COMPLETED and
+      POST_NOTIFICATIONS are also already declared transitively by
+      expo-notifications elsewhere in this project's dependency graph;
+      redeclared here too so this module is self-describing on its own.
+    -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
+      Package-visibility exemption (Android 11 / API 30+, see
+      https://developer.android.com/training/package-visibility). Without
+      this, PackageManager#queryIntentActivities in
+      IbadahNativeModule#pickAppsToBlock would silently come back near-empty
+      on API 30+ — apps can no longer see each other's launcher entries by
+      default. This is Google's own documented exemption shape for "query
+      all apps that respond to the launcher intent"
+      (https://developer.android.com/training/package-visibility/declaring#all-apps),
+      which is exactly what pickAppsToBlock does. No <queries><package>
+      allowlist is used instead because the whole point of this feature is
+      letting the user pick from apps we cannot enumerate in advance.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <application>
+        <!--
+          BIND_ACCESSIBILITY_SERVICE-protected: only the OS itself (the
+          system, holding that signature/system permission) can bind to
+          this service, so android:exported="true" here is required by the
+          platform for the OS to bind at all, not a public-surface leak —
+          see https://developer.android.com/guide/topics/manifest/service-element#exported
+          and https://developer.android.com/guide/topics/ui/accessibility/service.
+        -->
+        <service
+            android:name=".IbadahBlockingAccessibilityService"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:label="Ibadah Lock">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!--
+          Plain in-task Activity (not a SYSTEM_ALERT_WINDOW overlay — see
+          BlockedActivity's doc comment for why), so it needs none of the
+          "draw over other apps" special-permission machinery.
+          taskAffinity="" + singleTask keep it from ever merging into the
+          blocked app's own task/back-stack.
+        -->
+        <activity
+            android:name=".BlockedActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
+        <!--
+          Wake-alarm components. See each class's own doc comment for the
+          reasoning behind every attribute below.
+        -->
+        <receiver
+            android:name=".WakeAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".WakeAlarmBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".WakeAlarmRingingService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <activity
+            android:name=".WakeAlarmFullScreenActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+    </application>
+</manifest>

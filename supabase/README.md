@@ -41,6 +41,10 @@ conflicting policies first if you need to re-apply one by hand.
 | `0005_quran.sql` | `quran_bookmarks`, `quran_reader_settings` |
 | `0006_community.sql` | `community_circles`, `circle_members`, `community_goals`, `community_goal_members` |
 | `0007_focus.sql` | `focus_settings`, `focus_sessions` |
+| `0008_circle_privacy_friends.sql` | circle/privacy/friends follow-ups |
+| `0009_prayer_calc_settings.sql` | `prayer_calc_settings` — one row per user (location, timezone, adhan-js calculation method + madhab) powering real client-side prayer-time calculation |
+| `0010_ibadah_lock.sql` | `focus_sessions.goal_id`, `blocked_apps`, `emergency_overrides` — the "Ibadah Lock" app-blocking feature |
+| `0011_wake_alarm.sql` | `prayer_alarm_settings`, `wake_verifications` — the wake-verified prayer alarm (QR-tag scan confirms the user is actually up) |
 
 ## Row Level Security
 

@@ -27,6 +27,31 @@ npm run lint        # eslint
 npm run build       # static web export to dist/
 ```
 
+### This app is no longer plain-Expo-Go-compatible
+
+`modules/expo-ibadah-native/` is a local Expo Module (real Kotlin/Swift) backing
+"Ibadah Lock" (app-blocking) and the wake-verified prayer alarm's native pieces.
+Once that native code is linked in, `expo-dev-client` is required — plain Expo
+Go can no longer run this project. To build and run a dev client:
+
+```
+npx expo prebuild            # regenerates ./android and ./ios from app.json + this module
+# then either:
+npx expo run:android         # or run:ios — needs Android Studio / Xcode locally
+# or, without local native toolchains:
+eas build --profile development
+```
+
+then `npx expo start --dev-client` to iterate on JS as usual. See
+`app.json`'s `plugins` array (`expo-camera`, `expo-location`,
+`expo-notifications`, plus the local `plugins/withIbadahAndroidManifest.js`)
+and `eas.json` for the build profiles. iOS app-blocking additionally needs
+Apple's Family Controls entitlement, which is not self-service — see
+[`docs/ios-family-controls-entitlement.md`](./docs/ios-family-controls-entitlement.md).
+Android's app-blocking needs the user to manually enable an Accessibility
+Service in Settings (there's no programmatic grant) and its Play Store
+listing must disclose that use, per Play's Accessibility API policy.
+
 ## Content governance
 
 No Quran verses, hadith text, or religious rulings are invented anywhere in this app (see `src/state/quranData.ts` and the Adhkar session screen) — content awaiting a licensed source shows an explicit "pending source" state instead of placeholder scripture, matching the source design's governance requirement.
@@ -60,8 +85,12 @@ here connects to a live project on its own.
 The source `.dc.html` is a static prototype; this port focuses on visual/interaction fidelity and in-memory state. Not yet implemented (flagged in the original design conversation as needing native infrastructure or further design passes):
 
 - Real dark mode (system-aware palette)
-- Push notifications / per-category notification scheduling
 - Offline-first caching (service-worker equivalent)
 - Qibla via live device orientation (currently shows the saved-location bearing)
 - Full VoiceOver/TalkBack accessibility pass
-- Real Screen Time (iOS) / Usage Access (Android) integration for Ibadah Focus — this needs a native module and platform authorization flow beyond what this port includes
+- `app.json` has no `ios.bundleIdentifier` / `android.package` set yet — required before `expo prebuild`/`eas build` can produce a real, installable/archivable app; the project owner needs to pick and set these
+- The Android/iOS native wake-alarm mechanisms in `modules/expo-ibadah-native` (real `AlarmManager` full-screen alarm on Android; the iOS side is intentionally notification-only, see below) are built but not yet called from JS — today's wake-verification alarm (`src/services/wakeAlarmScheduling.ts`) uses `expo-notifications` local notifications on both platforms instead, since iOS has no true third-party alarm-clock API to match; wiring Android's native alarm path in is a possible follow-up, not done in this pass
+- iOS Family Controls entitlement for Ibadah Lock is not self-service — needs the project owner's own Apple Developer account approval; see `docs/ios-family-controls-entitlement.md`
+- Android's Ibadah Lock uses an `AccessibilityService` for enforcement, which needs a clear Play Store listing disclosure or risks review rejection (see that module's own doc comments)
+
+Real prayer-time calculation (`adhan-js`-backed, per-user location + calculation method), "Ibadah Lock" app-blocking, and the wake-verified prayer alarm (QR-tag scan proves you're up) have since landed — see `supabase/README.md`'s migration table and the "Run" section above for the native/dev-client setup they now require.

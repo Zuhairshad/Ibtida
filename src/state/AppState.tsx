@@ -10,25 +10,13 @@ import * as Haptics from 'expo-haptics';
 
 export type PrayerName = 'Fajr' | 'Dhuhr' | 'Asr' | 'Maghrib' | 'Isha';
 
-export type PrayerDef = {
-  name: PrayerName | 'Sunrise';
-  short: string;
-  time: string;
-  /** When this prayer's window closes — shown in the detail sheet. */
-  endsAt: string;
-  state: 'done' | 'sunrise' | 'current' | 'upcoming';
-  color: string;
-  tint: string;
-};
-
-export const PRAYER_TIMES: PrayerDef[] = [
-  { name: 'Fajr', short: 'Fajr', time: '4:10 AM', endsAt: '5:35 AM', state: 'done', color: '#4A7FC1', tint: '#DDEAF4' },
-  { name: 'Sunrise', short: 'Sunrise', time: '5:35 AM', endsAt: '12:05 PM', state: 'sunrise', color: '#C9902E', tint: '#FBF2DC' },
-  { name: 'Dhuhr', short: 'Dhuhr', time: '12:05 PM', endsAt: '3:40 PM', state: 'done', color: '#D9822E', tint: '#FBEBDA' },
-  { name: 'Asr', short: 'Asr', time: '3:40 PM', endsAt: '6:33 PM', state: 'current', color: '#5EAA78', tint: '#E3F3EA' },
-  { name: 'Maghrib', short: 'Maghrib', time: '6:33 PM', endsAt: '7:57 PM', state: 'upcoming', color: '#C0563F', tint: '#F7DEDE' },
-  { name: 'Isha', short: 'Isha', time: '7:57 PM', endsAt: '4:10 AM', state: 'upcoming', color: '#2F4B6E', tint: '#DCE3EC' },
-];
+// NOTE: the old hardcoded `PRAYER_TIMES` demo array (fake clock strings + a
+// fake done/current/upcoming/sunrise state per prayer) lived here and has
+// been removed — real prayer times are now computed on demand from the
+// user's saved location/settings via src/lib/prayerTimes.ts +
+// src/services/prayerSettings.ts (see PrayerScreen/PrayerDetailScreen/
+// HomeScreen). `state.secs` below keeps its 1s countdown *mechanism* but is
+// now seeded from that real computation instead of a fixed number.
 
 const IMPACT_TARGET = 2847391;
 
@@ -79,6 +67,9 @@ const initialState: State = {
   logMode: 1,
   dateIdx: 3,
   qiblaOpen: false,
+  // Seeded with the old demo target (23m 56s) only until the first screen
+  // that knows the user's real location/settings calls `setSecs` with the
+  // actual seconds-until-next-prayer — see PrayerScreen/HomeScreen.
   secs: 1436,
   impact: 0,
   booting: true,
@@ -104,6 +95,12 @@ type Ctx = {
   setQuranTab: (i: number) => void;
   toggleIntent: (i: number) => void;
   runHomeIntro: () => void;
+  /** Resyncs the 1s countdown to a real "seconds until next prayer" value —
+   * called by PrayerScreen/HomeScreen once they've computed it from the
+   * user's saved location/settings (src/lib/prayerTimes.ts's
+   * `getNextPrayer`), and again whenever that target prayer changes. The
+   * existing 1s ticker (below) keeps counting this down exactly as before. */
+  setSecs: (n: number) => void;
 };
 
 const AppStateContext = createContext<Ctx | null>(null);
@@ -166,6 +163,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, dateIdx: i }));
   }, []);
 
+  const setSecs = useCallback((n: number) => setState((s) => (s.secs === n ? s : { ...s, secs: Math.max(0, n) })), []);
+
   const setLogMode = useCallback((i: number) => setState((s) => ({ ...s, logMode: i })), []);
   const setAdhkarMode = useCallback((i: number) => setState((s) => ({ ...s, adhkarMode: i })), []);
   const setCommTab = useCallback((i: number) => setState((s) => ({ ...s, commTab: i })), []);
@@ -188,6 +187,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setQuranTab,
     toggleIntent,
     runHomeIntro,
+    setSecs,
   };
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

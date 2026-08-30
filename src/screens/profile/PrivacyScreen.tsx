@@ -14,6 +14,7 @@ import ConfirmSheet from '../../components/ConfirmSheet';
 import Toast from '../../components/Toast';
 import { SkeletonBlock } from '../../components/Skeleton';
 import EmptyState from '../../components/EmptyState';
+import PrayerLocationSettingsSheet from '../prayer/PrayerLocationSettingsSheet';
 import { ChevronLeftIcon, ChevronRightIcon, WarningIcon } from '../../theme/icons';
 
 const ROWS: { label: string; sub: string }[] = [
@@ -37,6 +38,7 @@ export default function PrivacyScreen() {
   const [notifications, setNotifications] = useState<Record<string, boolean>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [locationSheetOpen, setLocationSheetOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -214,6 +216,41 @@ export default function PrivacyScreen() {
           </Text>
         </RiseIn>
 
+        {/* Task item 7 — real prayer-time calculation needs a location and a
+            calc method the user can see/change after first-run, not just at
+            initial setup. */}
+        <RiseIn delay={130} style={{ paddingHorizontal: 24, marginTop: 22 }}>
+          <PressableScale
+            onPress={() => setLocationSheetOpen(true)}
+            accessibilityRole="button"
+            scaleTo={0.99}
+            style={{ minHeight: 52, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 16, backgroundColor: '#FFFFFF', padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          >
+            <View>
+              <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkStrong }}>Location & calculation method</Text>
+              <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 4 }}>Prayer times & Qibla direction</Text>
+            </View>
+            <ChevronRightIcon />
+          </PressableScale>
+        </RiseIn>
+
+        {/* Wake-verified prayer alarm — toggle per prayer + view the printable
+            QR tag (see src/screens/shared/WakeAlarmSettingsScreen.tsx). */}
+        <RiseIn delay={135} style={{ paddingHorizontal: 24, marginTop: 16 }}>
+          <PressableScale
+            onPress={nav.wakeAlarmSettings}
+            accessibilityRole="button"
+            scaleTo={0.99}
+            style={{ minHeight: 52, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 16, backgroundColor: '#FFFFFF', padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          >
+            <View>
+              <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkStrong }}>Wake-verification alarm</Text>
+              <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 4 }}>Scan-to-confirm alerts for Fajr and other prayers</Text>
+            </View>
+            <ChevronRightIcon />
+          </PressableScale>
+        </RiseIn>
+
         <RiseIn delay={140} style={{ paddingHorizontal: 24, marginTop: 16, gap: 8 }}>
           <PressableScale
             onPress={onExport}
@@ -243,6 +280,7 @@ export default function PrivacyScreen() {
         onConfirm={onDelete}
         onCancel={() => setConfirmDelete(false)}
       />
+      {user && <PrayerLocationSettingsSheet visible={locationSheetOpen} userId={user.id} onClose={() => setLocationSheetOpen(false)} />}
       <Toast message={toast} onDismiss={() => setToast(null)} />
     </View>
   );

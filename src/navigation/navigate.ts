@@ -41,13 +41,19 @@ export const nav = {
   quran: () => go('Tabs', { screen: 'DashboardTab', params: { screen: 'Quran' } }),
   quranReader: () => go('QuranReader'),
   focusSetup: () => go('FocusSetup'),
-  focusActive: () => go('FocusActive'),
+  // `goalId`/`target` present -> a goal-locked (app-blocked) session; omitted
+  // -> a plain focus session, same as calling this with no args before.
+  focusActive: (goalId?: string, target?: number) => go('FocusActive', goalId && target !== undefined ? { goalId, target } : undefined),
   profile: () => go('Tabs', { screen: 'ProfileTab', params: { screen: 'Profile' } }),
   privacy: () => go('Tabs', { screen: 'ProfileTab', params: { screen: 'Privacy2' } }),
   error: () => go('ErrorState'),
   search: () => go('Search'),
   notifications: () => go('Notifications'),
   circleNew: () => go('CircleNew'),
+  wakeAlarmSettings: () => go('WakeAlarmSettings'),
+  prayerMatTag: (prayerName: string) => go('PrayerMatTag', { prayerName }),
+  wakeScan: (prayerName: string, alarmDate: string) => go('WakeScan', { prayerName, alarmDate }),
+  emergencyHistory: () => go('EmergencyHistory'),
   back: () => {
     buzz();
     if (navigationRef.isReady() && navigationRef.canGoBack()) navigationRef.goBack();
