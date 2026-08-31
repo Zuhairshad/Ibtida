@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import PressableScale from './PressableScale';
-import { colors } from '../theme/tokens';
+import { colors, radii, spacing, type } from '../theme/tokens';
 
 type Props = {
   options: string[];
@@ -12,7 +12,7 @@ type Props = {
 
 export default function SegmentedControl({ options, selected, onChange, style }: Props) {
   return (
-    <View style={[{ flexDirection: 'row', gap: 4, padding: 4, borderRadius: 14, backgroundColor: colors.bgTint }, style]}>
+    <View style={[{ flexDirection: 'row', gap: spacing.xs, padding: spacing.xs, borderRadius: radii.pill, backgroundColor: colors.primaryTint }, style]}>
       {options.map((label, i) => {
         const on = i === selected;
         return (
@@ -23,17 +23,13 @@ export default function SegmentedControl({ options, selected, onChange, style }:
             style={{
               flex: 1,
               minHeight: 40,
-              borderRadius: 11,
-              backgroundColor: on ? '#FFFFFF' : 'transparent',
+              borderRadius: radii.pill,
+              backgroundColor: on ? colors.primary : 'transparent',
               alignItems: 'center',
               justifyContent: 'center',
-              shadowColor: on ? '#17201C' : undefined,
-              shadowOpacity: on ? 0.1 : 0,
-              shadowRadius: on ? 3 : 0,
-              shadowOffset: { width: 0, height: 1 },
             }}
           >
-            <Text style={{ fontSize: 13.5, fontWeight: on ? '600' : '500', color: on ? colors.inkStrong : colors.inkMuted }}>{label}</Text>
+            <Text style={{ ...type.captionStrong, color: on ? colors.inkOnPrimary : colors.inkSecondary }}>{label}</Text>
           </PressableScale>
         );
       })}

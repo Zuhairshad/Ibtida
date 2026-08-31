@@ -20,12 +20,13 @@ import {
   type PrayerSlotName,
 } from '../../lib/prayerTimes';
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow, spacing, type } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
 import { RowSkeleton } from '../../components/Skeleton';
 import Toast from '../../components/Toast';
 import PressableScale from '../../components/PressableScale';
 import ProgressRing from '../../components/ProgressRing';
+import MosqueMotif from '../../components/MosqueMotif';
 import { PinIcon, QiblaIcon, PrayerIcon, MoonIcon, SunIcon, ChevronRightIcon, CheckIcon, NavCompassIcon } from '../../theme/icons';
 
 const DATES = ['Sun 24', 'Mon 25', 'Tue 26', 'Wed 27', 'Thu 28', 'Fri 29', 'Sat 30'];
@@ -221,26 +222,38 @@ export default function PrayerScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
-        <RiseIn style={{ paddingHorizontal: 20, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <View>
-            <Text style={{ fontSize: 24, fontWeight: '700', color: '#1B2430', letterSpacing: -0.025 }}>Prayers</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
-              <PinIcon />
-              <Text style={{ fontSize: 12.5, color: colors.inkSecondary }}>{locationLabel}</Text>
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.standard, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
+        <RiseIn
+          style={{
+            marginHorizontal: spacing.lg,
+            borderRadius: radii.cardLarge,
+            backgroundColor: colors.primaryTint,
+            ...shadow.card,
+          }}
+        >
+          <View style={{ padding: spacing.lg, borderRadius: radii.cardLarge, backgroundColor: colors.primaryTint, overflow: 'hidden', flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md }}>
+            <View style={{ position: 'absolute', right: -34, bottom: -26 }}>
+              <MosqueMotif width={190} height={122} />
             </View>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={{ ...type.h1, color: colors.ink }}>Prayers</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.sm }}>
+                <PinIcon />
+                <Text style={{ ...type.caption, color: colors.inkSecondary }}>{locationLabel}</Text>
+              </View>
+            </View>
+            <PressableScale
+              onPress={toggleQibla}
+              style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.pill, backgroundColor: colors.card, minHeight: 44, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}
+            >
+              <QiblaIcon />
+              <Text style={{ fontSize: 12.5, fontWeight: '600', color: colors.primary }}>Qibla</Text>
+            </PressableScale>
           </View>
-          <PressableScale
-            onPress={toggleQibla}
-            style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 14, backgroundColor: '#FFFFFF', minHeight: 44, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 7 }}
-          >
-            <QiblaIcon />
-            <Text style={{ fontSize: 12.5, fontWeight: '600', color: colors.primary }}>Qibla</Text>
-          </PressableScale>
         </RiseIn>
 
-        <RiseIn delay={50} style={{ marginTop: 16 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}>
+        <RiseIn delay={50} style={{ marginTop: spacing.standard }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}>
             {DATES.map((d, i) => {
               const [dow, num] = d.split(' ');
               const on = state.dateIdx === i;
@@ -248,11 +261,11 @@ export default function PrayerScreen() {
                 <PressableScale
                   key={d}
                   onPress={() => pickDate(i)}
-                  style={{ width: 50, borderWidth: 1, borderColor: on ? colors.primary : 'rgba(27,36,48,0.08)', borderRadius: 16, paddingVertical: 10, backgroundColor: on ? colors.primary : '#FFFFFF', alignItems: 'center', gap: 6 }}
+                  style={{ width: 50, borderWidth: 1, borderColor: on ? colors.primary : colors.cardBorder, borderRadius: radii.button, paddingVertical: spacing.sm, backgroundColor: on ? colors.primary : colors.card, alignItems: 'center', gap: spacing.xs }}
                 >
-                  <Text style={{ fontSize: 11.5, fontWeight: '500', color: on ? '#FFFFFF' : colors.inkSecondary }}>{dow}</Text>
-                  <Text style={{ fontSize: 16, fontWeight: '700', color: on ? '#FFFFFF' : '#1B2430' }}>{num}</Text>
-                  {i === 3 && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: on ? '#FFFFFF' : colors.primaryFill }} />}
+                  <Text style={{ fontSize: 11.5, fontWeight: '500', color: on ? colors.inkOnPrimary : colors.inkSecondary }}>{dow}</Text>
+                  <Text style={{ ...type.h3, fontWeight: '700', color: on ? colors.inkOnPrimary : colors.ink }}>{num}</Text>
+                  {i === 3 && <View style={{ width: 4, height: 4, borderRadius: radii.pill, backgroundColor: on ? colors.inkOnPrimary : colors.primary }} />}
                 </PressableScale>
               );
             })}
@@ -260,43 +273,43 @@ export default function PrayerScreen() {
         </RiseIn>
 
         {state.qiblaOpen && (
-          <RiseIn style={{ paddingHorizontal: 20, marginTop: 16 }}>
-            <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 26, padding: 22, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 20 }}>
+          <RiseIn style={{ paddingHorizontal: spacing.lg, marginTop: spacing.standard }}>
+            <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, padding: spacing.lg, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: spacing.lg, ...shadow.card }}>
               <View style={{ width: 104, height: 104, alignItems: 'center', justifyContent: 'center' }}>
-                <View style={{ position: 'absolute', width: 104, height: 104, borderRadius: 52, borderWidth: 1.5, borderColor: '#E4EAF1' }} />
+                <View style={{ position: 'absolute', width: 104, height: 104, borderRadius: radii.pill, borderWidth: 1.5, borderColor: colors.primaryTint }} />
                 <NavCompassIcon size={104} angleDeg={bearing ?? -34} />
                 <Text style={{ position: 'absolute', top: 3, fontSize: 10, fontWeight: '700', color: colors.inkSecondary }}>N</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: '#1B2430' }}>Qibla direction</Text>
+                <Text style={{ ...type.bodyStrong, color: colors.ink }}>Qibla direction</Text>
                 <Text style={{ fontSize: 26, fontWeight: '700', color: colors.primary, marginTop: 10 }}>{bearing != null ? formatBearing(bearing) : '—'}</Text>
-                <Text style={{ fontSize: 12, color: '#5C6673', marginTop: 9, lineHeight: 17 }}>From {locationLabel}. Hold the phone flat and turn until the needle points north.</Text>
+                <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: spacing.sm, lineHeight: 17 }}>From {locationLabel}. Hold the phone flat and turn until the needle points north.</Text>
                 <Text style={{ fontSize: 11.5, color: colors.inkSecondary, marginTop: 8, lineHeight: 15 }}>Compass unavailable in preview — bearing shown from your saved location.</Text>
               </View>
             </View>
           </RiseIn>
         )}
 
-        <RiseIn delay={100} style={{ paddingHorizontal: 20, marginTop: 16 }}>
-          <View style={{ borderWidth: 1, borderColor: 'rgba(27,36,48,0.05)', borderRadius: 26, padding: 22, backgroundColor: '#EFF5FC', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+        <RiseIn delay={100} style={{ paddingHorizontal: spacing.lg, marginTop: spacing.standard }}>
+          <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.cardLarge, padding: spacing.lg, backgroundColor: colors.primaryTint, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, ...shadow.card }}>
             <View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59,125,222,0.12)', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 10, alignSelf: 'flex-start' }}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary }} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.card, borderRadius: radii.pill, paddingVertical: spacing.xs, paddingHorizontal: spacing.sm, alignSelf: 'flex-start' }}>
+                <View style={{ width: 6, height: 6, borderRadius: radii.pill, backgroundColor: colors.primary }} />
                 <Text style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: 0.08, textTransform: 'uppercase', color: colors.primary }}>Next Prayer</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 14 }}>
-                <Text style={{ fontSize: 30, fontWeight: '700', color: '#1B2430', letterSpacing: -0.025 }}>{countdown?.name ?? '—'}</Text>
-                <Text style={{ fontSize: 17, fontWeight: '500', color: '#5C6673' }}>{countdown && calcSettings ? formatPrayerTime(countdown.end, calcSettings.timezone) : '—'}</Text>
+                <Text style={{ ...type.display, color: colors.ink }}>{countdown?.name ?? '—'}</Text>
+                <Text style={{ fontSize: 17, fontWeight: '500', color: colors.inkSecondary }}>{countdown && calcSettings ? formatPrayerTime(countdown.end, calcSettings.timezone) : '—'}</Text>
               </View>
               <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 10 }}>
                 {Math.floor(state.secs / 60)}m {String(state.secs % 60).padStart(2, '0')}s remaining
               </Text>
-              <View style={{ height: 5, borderRadius: 3, backgroundColor: colors.primaryTint, marginTop: 14, width: 148, overflow: 'hidden' }}>
-                <View style={{ height: '100%', width: `${Math.round(Math.max(0, Math.min(1, nextRingProgress)) * 100)}%`, borderRadius: 3, backgroundColor: colors.primaryFill }} />
+              <View style={{ height: 5, borderRadius: radii.pill, backgroundColor: colors.card, marginTop: spacing.md, width: 148, overflow: 'hidden' }}>
+                <View style={{ height: '100%', width: `${Math.round(Math.max(0, Math.min(1, nextRingProgress)) * 100)}%`, borderRadius: radii.pill, backgroundColor: colors.primary }} />
               </View>
             </View>
-            <ProgressRing size={80} strokeWidth={6} progress={nextRingProgress} trackColor="#E4EAF1" color={colors.primaryFill}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: '#1B2430', textAlign: 'center' }}>
+            <ProgressRing size={80} strokeWidth={6} progress={nextRingProgress} trackColor={colors.card} color={colors.primary}>
+              <Text style={{ ...type.bodyStrong, fontWeight: '700', color: colors.ink, textAlign: 'center' }}>
                 {String(Math.floor(state.secs / 60)).padStart(2, '0')}:{String(state.secs % 60).padStart(2, '0')}
                 {'\n'}
                 <Text style={{ fontSize: 9.5, fontWeight: '500', color: colors.inkSecondary }}>Remaining</Text>
@@ -305,18 +318,18 @@ export default function PrayerScreen() {
           </View>
         </RiseIn>
 
-        <RiseIn delay={150} style={{ paddingHorizontal: 20, marginTop: 16 }}>
+        <RiseIn delay={150} style={{ paddingHorizontal: spacing.lg, marginTop: spacing.standard }}>
           {loadingLog || !logged || settingsLoading ? (
             <RowSkeleton rows={6} />
           ) : settingsError && !calcSettings ? (
-            <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 22, padding: 20, backgroundColor: '#FFFFFF', gap: 12 }}>
+            <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, padding: spacing.lg, backgroundColor: colors.card, gap: spacing.md, ...shadow.card }}>
               <Text style={{ fontSize: 14, color: colors.inkSecondary, lineHeight: 20 }}>{settingsError}</Text>
-              <PressableScale onPress={() => bootstrapLocation(() => false)} style={{ minHeight: 44, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 13.5, fontWeight: '600', color: '#FFFFFF' }}>Enable location</Text>
+              <PressableScale onPress={() => bootstrapLocation(() => false)} style={{ minHeight: 44, borderRadius: radii.button, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ ...type.captionStrong, color: colors.inkOnPrimary }}>Enable location</Text>
               </PressableScale>
             </View>
           ) : (
-            <View style={{ gap: 8 }}>
+            <View style={{ gap: spacing.sm }}>
               {SLOT_ORDER.map((slotName) => {
                 const sunrise = slotName === 'Sunrise';
                 const state_ = classification?.[slotName] ?? 'upcoming';
@@ -324,7 +337,6 @@ export default function PrayerScreen() {
                 const upcoming = state_ === 'upcoming';
                 const done = !sunrise && !!logged[slotName as PrayerName];
                 const isBusy = !sunrise && busy.has(slotName as PrayerName);
-                const disabled = sunrise || (upcoming && !done);
                 const timeLabel = times && calcSettings ? formatPrayerTime(times[slotName.toLowerCase() as keyof typeof times], calcSettings.timezone) : '—:—';
                 const note = sunrise
                   ? 'Not a prayer time'
@@ -335,7 +347,7 @@ export default function PrayerScreen() {
                       : state_ === 'done'
                         ? 'Missed · not logged'
                         : 'Upcoming · adhan on';
-                const noteInk = current ? '#2F5CA3' : !sunrise && !done && state_ === 'done' ? colors.dangerInk : colors.inkSecondary;
+                const noteInk = current ? colors.successStrong : !sunrise && !done && state_ === 'done' ? colors.danger : colors.inkSecondary;
                 const Icon = sunrise ? SunIcon : slotName === 'Isha' || slotName === 'Maghrib' ? MoonIcon : PrayerIcon;
                 const tint = SLOT_TINT[slotName];
                 return (
@@ -346,53 +358,71 @@ export default function PrayerScreen() {
                     scaleTo={0.985}
                     style={{
                       borderWidth: 1,
-                      borderColor: current ? 'rgba(61,115,201,0.25)' : 'rgba(23,32,28,0.05)',
-                      borderRadius: 22,
-                      paddingVertical: 15,
-                      paddingHorizontal: 16,
-                      backgroundColor: current ? colors.primaryTint : '#FFFFFF',
+                      borderColor: current ? colors.success : colors.cardBorder,
+                      borderRadius: radii.card,
+                      paddingVertical: spacing.standard,
+                      paddingHorizontal: spacing.standard,
+                      backgroundColor: current ? colors.successTint : colors.card,
                       flexDirection: 'row',
                       alignItems: 'center',
-                      gap: 13,
+                      gap: spacing.md,
                       minHeight: 48,
                       opacity: isBusy ? 0.6 : 1,
+                      ...shadow.card,
                     }}
                   >
-                    <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: tint.tint, alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon size={19} color={tint.ink} />
+                    <View style={{ width: 38, height: 38, borderRadius: radii.button, backgroundColor: current ? colors.successTint : tint.tint, alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={19} color={current ? colors.success : tint.ink} />
                     </View>
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={{ fontSize: 16, fontWeight: '600', color: '#1B2430' }}>{slotName}</Text>
+                      <Text style={{ ...type.h3, color: colors.ink }}>{slotName}</Text>
                       <Text style={{ fontSize: 12.5, color: noteInk, marginTop: 4 }}>{note}</Text>
                     </View>
-                    <Text style={{ fontSize: 16, fontWeight: '500', color: colors.inkStrong }}>{timeLabel}</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '500', color: colors.ink }}>{timeLabel}</Text>
                     {!sunrise &&
                       (done ? (
                         <PressableScale
                           onPress={() => handleToggle(slotName as PrayerName)}
                           disabled={isBusy}
-                          style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: colors.success, alignItems: 'center', justifyContent: 'center' }}
+                          style={{ width: 44, height: 44, borderRadius: radii.button, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}
                         >
                           <CheckIcon size={16} />
                         </PressableScale>
-                      ) : (
-                        <PressableScale
-                          onPress={() => handleToggle(slotName as PrayerName)}
-                          disabled={isBusy || disabled}
+                      ) : upcoming ? (
+                        <View
                           style={{
                             width: 44,
                             height: 44,
-                            borderRadius: 14,
+                            borderRadius: radii.button,
                             borderWidth: 1.5,
-                            borderColor: 'rgba(23,32,28,0.16)',
+                            borderColor: colors.inkMuted,
                             borderStyle: 'dashed',
-                            backgroundColor: '#FFFFFF',
+                            backgroundColor: colors.card,
                             alignItems: 'center',
                             justifyContent: 'center',
-                            opacity: disabled ? 0.4 : 1,
+                            opacity: 0.55,
                           }}
                         >
-                          <Text style={{ fontSize: 12, fontWeight: '600', color: '#5C6673' }}>Log</Text>
+                          <Text style={{ ...type.h3, color: colors.inkMuted }}>–</Text>
+                        </View>
+                      ) : (
+                        <PressableScale
+                          onPress={() => handleToggle(slotName as PrayerName)}
+                          disabled={isBusy}
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: radii.button,
+                            borderWidth: 1.5,
+                            borderColor: colors.inkMuted,
+                            borderStyle: 'dashed',
+                            backgroundColor: colors.card,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: 1,
+                          }}
+                        >
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.inkSecondary }}>Log</Text>
                         </PressableScale>
                       ))}
                   </PressableScale>
@@ -402,25 +432,25 @@ export default function PrayerScreen() {
           )}
         </RiseIn>
 
-        <RiseIn delay={200} style={{ paddingHorizontal: 20, marginTop: 16 }}>
+        <RiseIn delay={200} style={{ paddingHorizontal: spacing.lg, marginTop: spacing.standard }}>
           <PressableScale
             onPress={nav.progress}
             scaleTo={0.985}
-            style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 22, padding: 17, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48 }}
+            style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, padding: spacing.standard, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, ...shadow.card }}
           >
-            <Text style={{ fontSize: 15, fontWeight: '600', color: colors.inkStrong }}>Qada & missed prayers</Text>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>Qada & missed prayers</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
-              <View style={{ backgroundColor: 'rgba(201,107,107,0.13)', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 10 }}>
-                <Text style={{ fontSize: 12.5, fontWeight: '500', color: colors.dangerInk }}>4 outstanding</Text>
+              <View style={{ backgroundColor: colors.dangerTint, borderRadius: radii.pill, paddingVertical: spacing.xs, paddingHorizontal: spacing.sm }}>
+                <Text style={{ fontSize: 12.5, fontWeight: '500', color: colors.danger }}>4 outstanding</Text>
               </View>
               <ChevronRightIcon />
             </View>
           </PressableScale>
         </RiseIn>
 
-        <RiseIn delay={250} style={{ paddingHorizontal: 20, marginTop: 12 }}>
-          <View style={{ borderRadius: 22, padding: 17, backgroundColor: colors.bgTint }}>
-            <Text style={{ fontSize: 12.5, lineHeight: 20, color: '#5C6673' }}>
+        <RiseIn delay={250} style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
+          <View style={{ borderRadius: radii.card, padding: spacing.standard, backgroundColor: colors.primaryTint }}>
+            <Text style={{ fontSize: 12.5, lineHeight: 20, color: colors.inkSecondary }}>
               Times are calculated on device ({calcSettings?.calculationMethod ?? 'Muslim World League'} · {calcSettings?.madhab ?? 'Shafi'}). Missed prayers move to Qada after midnight rather than
               disappearing.
             </Text>

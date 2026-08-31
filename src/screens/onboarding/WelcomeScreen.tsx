@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Rect } from 'react-native-svg';
 
 import { useAuth } from '../../state/AuthContext';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow, type } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PrimaryButton from '../../components/PrimaryButton';
 import SecondaryButton from '../../components/SecondaryButton';
@@ -19,9 +19,9 @@ type Busy = null | 'password' | 'magic' | 'google';
 const inputCardStyle = {
   borderWidth: 1,
   borderColor: colors.cardBorder,
-  borderRadius: 18,
-  backgroundColor: '#FFFFFF',
-  overflow: 'hidden' as const,
+  borderRadius: radii.card,
+  backgroundColor: colors.card,
+  ...shadow.card,
 };
 
 const fieldStyle = {
@@ -41,7 +41,7 @@ const fieldLabelStyle = {
 const fieldInputStyle = {
   fontSize: 16,
   fontWeight: '500' as const,
-  color: colors.inkStrong,
+  color: colors.ink,
   marginTop: 8,
   padding: 0,
   minHeight: 22,
@@ -126,16 +126,16 @@ export default function WelcomeScreen() {
           contentContainerStyle={{ paddingHorizontal: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32, flexGrow: 1 }}
         >
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
-            <Animated.View style={{ position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(217,190,134,0.4)', opacity: glowOpacity, transform: [{ scale: glowScale }] }} />
+            <Animated.View style={{ position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: colors.primaryTint, opacity: glowOpacity, transform: [{ scale: glowScale }] }} />
             <Svg width={92} height={92} viewBox="0 0 152 152" fill="none">
-              <Circle cx={76} cy={76} r={62} stroke="#3D73C9" />
-              <Circle cx={76} cy={76} r={44} stroke="#5EAA78" />
-              <Rect x={32} y={32} width={88} height={88} rx={10} stroke="rgba(22,50,62,0.55)" transform="rotate(45 76 76)" />
-              <Circle cx={76} cy={76} r={6.5} fill="#3D73C9" />
+              <Circle cx={76} cy={76} r={62} stroke={colors.primary} />
+              <Circle cx={76} cy={76} r={44} stroke={colors.success} />
+              <Rect x={32} y={32} width={88} height={88} rx={10} stroke={colors.primaryStrong} opacity={0.55} transform="rotate(45 76 76)" />
+              <Circle cx={76} cy={76} r={6.5} fill={colors.primary} />
             </Svg>
           </View>
 
-          <Text style={{ fontSize: 27, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025, lineHeight: 32, textAlign: 'center', marginTop: 12 }}>
+          <Text style={{ ...type.h1, color: colors.ink, lineHeight: 30, textAlign: 'center', marginTop: 12 }}>
             Small steps.{'\n'}Consistent worship.
           </Text>
           <Text style={{ fontSize: 15, lineHeight: 22, color: colors.inkMuted, marginTop: 10, marginBottom: 24, textAlign: 'center' }}>
@@ -154,7 +154,7 @@ export default function WelcomeScreen() {
                   setError(null);
                 }}
                 placeholder="you@example.com"
-                placeholderTextColor="#A8AEB4"
+                placeholderTextColor={colors.inkMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
@@ -172,7 +172,7 @@ export default function WelcomeScreen() {
                   setError(null);
                 }}
                 placeholder={mode === 'signin' ? 'Your password' : 'At least 6 characters'}
-                placeholderTextColor="#A8AEB4"
+                placeholderTextColor={colors.inkMuted}
                 secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -185,8 +185,8 @@ export default function WelcomeScreen() {
             </View>
           </View>
 
-          {error ? <Text style={{ fontSize: 13, color: colors.dangerInk, marginTop: 12, lineHeight: 19 }}>{error}</Text> : null}
-          {!error && info ? <Text style={{ fontSize: 13, color: colors.successText, marginTop: 12, lineHeight: 19 }}>{info}</Text> : null}
+          {error ? <Text style={{ fontSize: 13, color: colors.danger, marginTop: 12, lineHeight: 19 }}>{error}</Text> : null}
+          {!error && info ? <Text style={{ fontSize: 13, color: colors.successStrong, marginTop: 12, lineHeight: 19 }}>{info}</Text> : null}
 
           <PrimaryButton
             label={mode === 'signin' ? 'Sign in' : 'Create account'}
@@ -204,7 +204,7 @@ export default function WelcomeScreen() {
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 16, gap: 12 }}>
             <View style={{ flex: 1, height: 1, backgroundColor: colors.divider }} />
-            <Text style={{ fontSize: 12.5, color: colors.inkFaint }}>or</Text>
+            <Text style={{ fontSize: 12.5, color: colors.inkMuted }}>or</Text>
             <View style={{ flex: 1, height: 1, backgroundColor: colors.divider }} />
           </View>
 
@@ -214,10 +214,10 @@ export default function WelcomeScreen() {
             scaleTo={0.99}
             style={{
               minHeight: 52,
-              borderRadius: 16,
+              borderRadius: radii.pill,
               borderWidth: 1,
-              borderColor: colors.cardBorderStrong,
-              backgroundColor: '#FFFFFF',
+              borderColor: colors.divider,
+              backgroundColor: colors.card,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
@@ -226,16 +226,16 @@ export default function WelcomeScreen() {
             }}
           >
             {busy === 'google' ? (
-              <ActivityIndicator color={colors.inkStrong} />
+              <ActivityIndicator color={colors.ink} />
             ) : (
               <>
                 <GoogleGlyph />
-                <Text style={{ fontSize: 15, fontWeight: '600', color: colors.inkStrong }}>Continue with Google</Text>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>Continue with Google</Text>
               </>
             )}
           </PressableScale>
 
-          <Text style={{ fontSize: 12, color: colors.inkFaint, textAlign: 'center', marginTop: 20, lineHeight: 18 }}>
+          <Text style={{ fontSize: 12, color: colors.inkMuted, textAlign: 'center', marginTop: 20, lineHeight: 18 }}>
             {mode === 'signin' ? "New here? Switch to “Create account” above." : 'By continuing you agree that your worship data stays private to you by default.'}
           </Text>
         </ScrollView>
@@ -248,8 +248,8 @@ export default function WelcomeScreen() {
 // asset/brand SVG just for this button.
 function GoogleGlyph({ size = 18 }: { size?: number }) {
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 1.5, borderColor: '#4A7FC1', alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontSize: size * 0.62, fontWeight: '700', color: '#4A7FC1', includeFontPadding: false, lineHeight: size }}>G</Text>
+    <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ fontSize: size * 0.62, fontWeight: '700', color: colors.primary, includeFontPadding: false, lineHeight: size }}>G</Text>
     </View>
   );
 }

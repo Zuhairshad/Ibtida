@@ -7,7 +7,7 @@ import { useAuth } from '../../state/AuthContext';
 import { getAlarmConfig, regenerateVerificationToken } from '../../services/wakeAlarm';
 import type { PrayerName } from '../../services/prayers';
 import { nav } from '../../navigation/navigate';
-import { colors, radii } from '../../theme/tokens';
+import { colors, radii, shadow } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import SecondaryButton from '../../components/SecondaryButton';
@@ -85,7 +85,7 @@ export default function PrayerMatTagScreen({ prayerName }: Props) {
         <PressableScale onPress={nav.back} scaleTo={1} style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -10 }}>
           <ChevronLeftIcon />
         </PressableScale>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.inkStrong }}>{prayerName} wake tag</Text>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>{prayerName} wake tag</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 18, paddingBottom: 12 }} showsVerticalScrollIndicator={false}>
@@ -106,12 +106,13 @@ export default function PrayerMatTagScreen({ prayerName }: Props) {
                 borderWidth: 1,
                 borderColor: colors.cardBorder,
                 backgroundColor: colors.card,
+                ...shadow.card,
               }}
             >
-              <View style={{ padding: 16, borderRadius: radii.card, backgroundColor: '#FFFFFF' }}>
-                <QRCode value={token} size={200} color={colors.inkStrong} backgroundColor="#FFFFFF" ecl="M" />
+              <View style={{ padding: 16, borderRadius: radii.card, backgroundColor: colors.card }}>
+                <QRCode value={token} size={200} color={colors.ink} backgroundColor={colors.card} ecl="M" />
               </View>
-              <Text style={{ fontSize: 13, color: colors.inkFaint, marginTop: 14, letterSpacing: 0.4 }}>{token.slice(0, 8).toUpperCase()}</Text>
+              <Text style={{ fontSize: 13, color: colors.inkMuted, marginTop: 14, letterSpacing: 0.4 }}>{token.slice(0, 8).toUpperCase()}</Text>
             </View>
 
             <Text style={{ fontSize: 14.5, lineHeight: 23, color: colors.inkMuted, marginTop: 20 }}>
@@ -119,7 +120,7 @@ export default function PrayerMatTagScreen({ prayerName }: Props) {
               actually up — not just tapping snooze from bed.
             </Text>
 
-            <View style={{ marginTop: 22, borderRadius: radii.card, borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.bgWash, padding: 16 }}>
+            <View style={{ marginTop: 22, borderRadius: radii.card, borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.bg, padding: 16 }}>
               <Text style={{ fontSize: 12.5, fontWeight: '600', color: colors.inkSecondary, textTransform: 'uppercase', letterSpacing: 0.1 }}>
                 Lost or compromised tag?
               </Text>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, View } from 'react-native';
-import PrimaryButtonInline from './SecondaryButton';
-import { colors } from '../theme/tokens';
+import PrimaryButton from './PrimaryButton';
+import { colors, radii, spacing, type } from '../theme/tokens';
 
 type Props = {
   icon: React.ReactNode;
@@ -20,26 +20,23 @@ export default function EmptyState({ icon, title, subtitle, actionLabel, onActio
       style={{
         borderWidth: 1.5,
         borderStyle: 'dashed',
-        borderColor: 'rgba(23,32,28,0.13)',
-        borderRadius: 24,
-        paddingVertical: 28,
-        paddingHorizontal: 22,
+        borderColor: colors.divider,
+        borderRadius: radii.card,
+        paddingVertical: spacing.xxl,
+        paddingHorizontal: spacing.lg,
         alignItems: 'center',
       }}
     >
-      <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: colors.bgTint, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>{icon}</View>
-      <Text style={{ fontSize: 16, fontWeight: '600', color: colors.inkStrong, textAlign: 'center' }}>{title}</Text>
-      <Text style={{ fontSize: 13.5, color: colors.inkMuted, marginTop: 8, textAlign: 'center', lineHeight: 20 }}>{subtitle}</Text>
+      <View style={{ width: 52, height: 52, borderRadius: radii.control, backgroundColor: colors.primaryTint, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.standard }}>{icon}</View>
+      <Text style={{ ...type.h3, color: colors.ink, textAlign: 'center' }}>{title}</Text>
+      <Text style={{ ...type.caption, color: colors.inkSecondary, marginTop: spacing.sm, textAlign: 'center', lineHeight: 20 }}>{subtitle}</Text>
       {!!actionLabel && (
         <View
           style={{
-            marginTop: 16,
-            borderWidth: 1,
-            borderColor: 'rgba(23,32,28,0.12)',
-            borderRadius: 14,
+            marginTop: spacing.standard,
           }}
         >
-          <PrimaryButtonInline label={actionLabel} onPress={onAction} style={{ paddingHorizontal: 22, minHeight: 48 }} textStyle={{ color: colors.inkStrong, fontWeight: '600', fontSize: 14 }} />
+          <PrimaryButton label={actionLabel} onPress={onAction} style={{ paddingHorizontal: spacing.xl, minHeight: 48 }} />
         </View>
       )}
     </View>

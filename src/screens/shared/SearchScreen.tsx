@@ -3,7 +3,7 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow, spacing } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import EmptyState from '../../components/EmptyState';
@@ -78,23 +78,23 @@ export default function SearchScreen() {
   }, [query]);
 
   const iconFor = (kind: Result['kind']) =>
-    kind === 'Quran' ? <BookIcon size={19} color="#2F5CA3" /> : kind === 'Goal' ? <BeadsIcon size={19} color="#3B7A52" /> : <AdhkarIcon size={19} color={colors.goldInk} />;
+    kind === 'Quran' ? <BookIcon size={19} color={colors.primaryStrong} /> : kind === 'Goal' ? <BeadsIcon size={19} color={colors.successStrong} /> : <AdhkarIcon size={19} color={colors.gold} />;
   const tintFor = (kind: Result['kind']) => (kind === 'Quran' ? colors.primaryTint : kind === 'Goal' ? colors.successTint : colors.goldTint);
 
   return (
     <ScreenFade duration={280} style={{ backgroundColor: colors.bg, paddingTop: insets.top + 12 }}>
       <View style={{ paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 12, paddingHorizontal: 15, borderRadius: 14, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: colors.cardBorder, minHeight: 48 }}>
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.md, paddingHorizontal: spacing.standard, borderRadius: radii.button, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder, minHeight: 48 }}>
           <SearchIcon />
           <TextInput
             value={query}
             onChangeText={setQuery}
             autoFocus
             placeholder="Search Quran, adhkar, duas and goals"
-            placeholderTextColor="#8A928C"
+            placeholderTextColor={colors.inkMuted}
             accessibilityLabel="Search"
             returnKeyType="search"
-            style={{ flex: 1, fontSize: 14.5, color: colors.inkStrong, padding: 0 }}
+            style={{ flex: 1, fontSize: 14.5, color: colors.ink, padding: 0 }}
           />
         </View>
         <PressableScale onPress={nav.back} scaleTo={1} accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center' }}>
@@ -108,8 +108,8 @@ export default function SearchScreen() {
             <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary, marginBottom: 12 }}>Try searching</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {['Istighfar', 'Al-Kahf', 'Durood', 'Evening', 'Travel'].map((s) => (
-                <PressableScale key={s} onPress={() => setQuery(s)} scaleTo={0.94} accessibilityRole="button" style={{ backgroundColor: colors.bgTint, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '500', color: colors.inkStrong }}>{s}</Text>
+                <PressableScale key={s} onPress={() => setQuery(s)} scaleTo={0.94} accessibilityRole="button" style={{ backgroundColor: colors.primaryTint, paddingVertical: 10, paddingHorizontal: 14, borderRadius: radii.pill }}>
+                  <Text style={{ fontSize: 13, fontWeight: '500', color: colors.ink }}>{s}</Text>
                 </PressableScale>
               ))}
             </View>
@@ -133,11 +133,11 @@ export default function SearchScreen() {
                 scaleTo={0.985}
                 accessibilityRole="button"
                 accessibilityLabel={`${r.title}, ${r.kind}`}
-                style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 13, minHeight: 48 }}
+                style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, paddingVertical: spacing.standard, paddingHorizontal: spacing.standard, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 48, ...shadow.card }}
               >
-                <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: tintFor(r.kind), alignItems: 'center', justifyContent: 'center' }}>{iconFor(r.kind)}</View>
+                <View style={{ width: 38, height: 38, borderRadius: radii.control, backgroundColor: tintFor(r.kind), alignItems: 'center', justifyContent: 'center' }}>{iconFor(r.kind)}</View>
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={{ fontSize: 15.5, fontWeight: '600', color: colors.inkStrong }} numberOfLines={1}>
+                  <Text style={{ fontSize: 15.5, fontWeight: '600', color: colors.ink }} numberOfLines={1}>
                     {r.title}
                   </Text>
                   <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 4 }} numberOfLines={1}>

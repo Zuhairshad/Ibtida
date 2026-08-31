@@ -11,7 +11,7 @@ import * as Location from 'expo-location';
 import * as PrayerSettingsService from '../../services/prayerSettings';
 import type { CalculationMethod, Madhab, PrayerCalcSettings } from '../../services/prayerSettings';
 import { formatCoordinates } from '../../lib/prayerTimes';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow, spacing } from '../../theme/tokens';
 import BottomSheetModal from '../../components/BottomSheetModal';
 import PressableScale from '../../components/PressableScale';
 import SecondaryButton from '../../components/SecondaryButton';
@@ -127,7 +127,7 @@ export default function PrayerLocationSettingsSheet({ visible, userId, onClose }
 
   return (
     <BottomSheetModal visible onClose={onClose}>
-      <Text style={{ fontSize: 20, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.02 }}>Location & calculation method</Text>
+      <Text style={{ fontSize: 20, fontWeight: '600', color: colors.ink, letterSpacing: -0.02 }}>Location & calculation method</Text>
       <Text style={{ fontSize: 13.5, color: colors.inkMuted, marginTop: 8, lineHeight: 20 }}>Used to calculate your real prayer times and Qibla direction.</Text>
 
       {loading ? (
@@ -137,16 +137,16 @@ export default function PrayerLocationSettingsSheet({ visible, userId, onClose }
         </View>
       ) : (
         <ScrollView style={{ maxHeight: 420, marginTop: 14 }} showsVerticalScrollIndicator={false}>
-          <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 16, backgroundColor: '#FFFFFF', padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, padding: spacing.standard, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, ...shadow.card }}>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.08, textTransform: 'uppercase', color: colors.inkSecondary }}>Location</Text>
-              <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkStrong, marginTop: 6 }}>{settings ? formatCoordinates(settings.latitude, settings.longitude) : 'Not set'}</Text>
+              <Text style={{ fontSize: 15, fontWeight: '500', color: colors.ink, marginTop: 6 }}>{settings ? formatCoordinates(settings.latitude, settings.longitude) : 'Not set'}</Text>
               {settings && <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 4 }}>{settings.timezone}</Text>}
             </View>
             <PressableScale
               onPress={onRedetect}
               disabled={busy}
-              style={{ minHeight: 40, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.primaryTint, alignItems: 'center', justifyContent: 'center', opacity: busy ? 0.6 : 1 }}
+              style={{ minHeight: 40, paddingHorizontal: spacing.md, borderRadius: radii.pill, backgroundColor: colors.primaryTint, alignItems: 'center', justifyContent: 'center', opacity: busy ? 0.6 : 1 }}
             >
               <Text style={{ fontSize: 12.5, fontWeight: '600', color: colors.primary }}>Re-detect</Text>
             </PressableScale>
@@ -161,17 +161,17 @@ export default function PrayerLocationSettingsSheet({ visible, userId, onClose }
                   key={m.value}
                   onPress={() => onPickMadhab(m.value)}
                   disabled={busy || !settings}
-                  style={{ flex: 1, minHeight: 56, borderRadius: 14, borderWidth: on ? 0 : 1, borderColor: colors.cardBorder, backgroundColor: on ? colors.primary : '#FFFFFF', alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}
+                  style={{ flex: 1, minHeight: 56, borderRadius: radii.button, borderWidth: on ? 0 : 1, borderColor: colors.cardBorder, backgroundColor: on ? colors.primary : colors.card, alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: on ? '#FFFFFF' : colors.inkStrong }}>{m.label}</Text>
-                  <Text style={{ fontSize: 11, color: on ? 'rgba(255,255,255,0.8)' : colors.inkSecondary, marginTop: 2 }}>{m.sub}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: on ? colors.inkOnPrimary : colors.ink }}>{m.label}</Text>
+                  <Text style={{ fontSize: 11, color: on ? colors.inkOnPrimary : colors.inkSecondary, opacity: on ? 0.8 : 1, marginTop: 2 }}>{m.sub}</Text>
                 </PressableScale>
               );
             })}
           </View>
 
           <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary, marginTop: 20, marginBottom: 10 }}>Calculation method</Text>
-          <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 16, backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
+          <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, ...shadow.card }}>
             {METHODS.map((m, i) => {
               const on = settings?.calculationMethod === m.value;
               return (
@@ -191,7 +191,7 @@ export default function PrayerLocationSettingsSheet({ visible, userId, onClose }
                     backgroundColor: on ? colors.primaryTint : 'transparent',
                   }}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: on ? '600' : '500', color: on ? colors.primary : colors.inkStrong, flex: 1 }}>{m.label}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: on ? '600' : '500', color: on ? colors.primary : colors.ink, flex: 1 }}>{m.label}</Text>
                   {on && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary }} />}
                 </PressableScale>
               );

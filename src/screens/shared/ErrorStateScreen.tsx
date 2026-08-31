@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow, spacing, type } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import PrimaryButton from '../../components/PrimaryButton';
@@ -21,21 +21,21 @@ export default function ErrorStateScreen() {
         <Text style={{ fontSize: 14, fontWeight: '500', color: colors.inkMuted }}>Back</Text>
       </PressableScale>
 
-      <View style={{ marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16, backgroundColor: colors.goldTint, borderWidth: 1, borderColor: 'rgba(217,164,74,0.4)' }}>
+      <View style={{ marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 14, paddingHorizontal: 16, borderRadius: radii.button, backgroundColor: colors.goldTint, borderWidth: 1, borderColor: colors.gold }}>
         <WarningIcon />
-        <Text style={{ fontSize: 13.5, fontWeight: '500', color: colors.goldInkDeep, lineHeight: 19, flex: 1 }}>Offline · your counts are still being saved</Text>
+        <Text style={{ fontSize: 13.5, fontWeight: '500', color: colors.gold, lineHeight: 19, flex: 1 }}>Offline · your counts are still being saved</Text>
       </View>
 
-      <View style={{ marginTop: 12, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', padding: 24, alignItems: 'center' }}>
-        <View style={{ width: 54, height: 54, borderRadius: 18, backgroundColor: colors.bgTint, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+      <View style={{ marginTop: spacing.md, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, padding: spacing.xl, alignItems: 'center', ...shadow.card }}>
+        <View style={{ width: 54, height: 54, borderRadius: radii.button, backgroundColor: colors.primaryTint, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.standard }}>
           <OfflineIcon />
         </View>
-        <Text style={{ fontSize: 18, fontWeight: '600', color: colors.inkStrong }}>Something went wrong</Text>
+        <Text style={{ ...type.h2, color: colors.ink }}>Something went wrong</Text>
         <Text style={{ fontSize: 14.5, lineHeight: 23, color: colors.inkMuted, marginTop: 10, textAlign: 'center' }}>Your progress is safe. We’ll try again when you’re connected.</Text>
         <PrimaryButton label="Try again" onPress={nav.home} style={{ marginTop: 18, paddingHorizontal: 26, minHeight: 48, alignSelf: 'center', width: undefined }} />
       </View>
 
-      <View style={{ marginTop: 12, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', padding: 20 }}>
+      <View style={{ marginTop: spacing.md, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, padding: spacing.lg, ...shadow.card }}>
         <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary }}>Skeleton loading</Text>
         <View style={{ marginTop: 16 }}>
           <RowSkeleton rows={3} />

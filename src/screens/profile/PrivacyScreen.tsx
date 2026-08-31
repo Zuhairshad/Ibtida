@@ -6,7 +6,7 @@ import { PRIVACY_OPTIONS, NOTIFICATION_CATEGORIES } from '../../state/AppState';
 import { useAuth } from '../../state/AuthContext';
 import { getPrivacySettings, getNotificationSettings, cyclePrivacy as cyclePrivacyRemote, toggleNotification as toggleNotificationRemote } from '../../services/settings';
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow, type } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import Toggle from '../../components/Toggle';
@@ -138,13 +138,13 @@ export default function PrivacyScreen() {
             <ChevronLeftIcon color={colors.inkMuted} />
             <Text style={{ fontSize: 14, fontWeight: '500', color: colors.inkMuted }}>Profile</Text>
           </PressableScale>
-          <Text style={{ fontSize: 27, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025, marginTop: 12 }}>Privacy</Text>
+          <Text style={{ ...type.h1, color: colors.ink, marginTop: 12 }}>Privacy</Text>
           <Text style={{ fontSize: 13.5, color: colors.inkMuted, marginTop: 9, lineHeight: 20 }}>Everything starts private. You choose what leaves the device.</Text>
         </RiseIn>
 
         {/* Value-picker rows — tapping cycles through that setting's options. */}
         <RiseIn delay={80} style={{ paddingHorizontal: 24, marginTop: 18 }}>
-          <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
+          <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, ...shadow.card }}>
             {ROWS.map((row, i) => {
               const value = privacy[row.label];
               const isOn = value === 'On';
@@ -168,12 +168,12 @@ export default function PrivacyScreen() {
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkStrong }}>{row.label}</Text>
+                    <Text style={{ fontSize: 15, fontWeight: '500', color: colors.ink }}>{row.label}</Text>
                     <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 5, lineHeight: 17 }}>{row.sub}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <View style={{ backgroundColor: isOn ? 'rgba(94,170,120,0.15)' : colors.bgTint, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 11 }}>
-                      <Text style={{ fontSize: 12.5, fontWeight: '500', color: isOn ? '#2F6B45' : colors.inkStrong }}>{value}</Text>
+                    <View style={{ backgroundColor: isOn ? colors.successTint : colors.primaryTint, paddingVertical: 8, paddingHorizontal: 11, borderRadius: radii.pill }}>
+                      <Text style={{ fontSize: 12.5, fontWeight: '500', color: isOn ? colors.successStrong : colors.ink }}>{value}</Text>
                     </View>
                     <ChevronRightIcon />
                   </View>
@@ -186,7 +186,7 @@ export default function PrivacyScreen() {
         {/* §24 — every notification category can be disabled independently. */}
         <RiseIn delay={110} style={{ paddingHorizontal: 24, marginTop: 22 }}>
           <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary, marginBottom: 12 }}>Notifications</Text>
-          <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
+          <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, ...shadow.card }}>
             {NOTIFICATION_CATEGORIES.map((cat, i) => (
               <PressableScale
                 key={cat}
@@ -206,7 +206,7 @@ export default function PrivacyScreen() {
                   minHeight: 52,
                 }}
               >
-                <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkStrong }}>{cat}</Text>
+                <Text style={{ fontSize: 15, fontWeight: '500', color: colors.ink }}>{cat}</Text>
                 <Toggle on={notifications[cat]} />
               </PressableScale>
             ))}
@@ -224,10 +224,10 @@ export default function PrivacyScreen() {
             onPress={() => setLocationSheetOpen(true)}
             accessibilityRole="button"
             scaleTo={0.99}
-            style={{ minHeight: 52, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 16, backgroundColor: '#FFFFFF', padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+            style={{ minHeight: 52, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...shadow.card }}
           >
             <View>
-              <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkStrong }}>Location & calculation method</Text>
+              <Text style={{ fontSize: 15, fontWeight: '500', color: colors.ink }}>Location & calculation method</Text>
               <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 4 }}>Prayer times & Qibla direction</Text>
             </View>
             <ChevronRightIcon />
@@ -241,10 +241,10 @@ export default function PrivacyScreen() {
             onPress={nav.wakeAlarmSettings}
             accessibilityRole="button"
             scaleTo={0.99}
-            style={{ minHeight: 52, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 16, backgroundColor: '#FFFFFF', padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+            style={{ minHeight: 52, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...shadow.card }}
           >
             <View>
-              <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkStrong }}>Wake-verification alarm</Text>
+              <Text style={{ fontSize: 15, fontWeight: '500', color: colors.ink }}>Wake-verification alarm</Text>
               <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 4 }}>Scan-to-confirm alerts for Fajr and other prayers</Text>
             </View>
             <ChevronRightIcon />
@@ -256,17 +256,17 @@ export default function PrivacyScreen() {
             onPress={onExport}
             accessibilityRole="button"
             scaleTo={0.99}
-            style={{ minHeight: 52, borderWidth: 1, borderColor: 'rgba(23,32,28,0.09)', borderRadius: 16, backgroundColor: '#FFFFFF', padding: 16, justifyContent: 'center' }}
+            style={{ minHeight: 52, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, padding: 16, justifyContent: 'center', ...shadow.card }}
           >
-            <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkStrong }}>Export my data</Text>
+            <Text style={{ fontSize: 15, fontWeight: '500', color: colors.ink }}>Export my data</Text>
           </PressableScale>
           <PressableScale
             onPress={() => setConfirmDelete(true)}
             accessibilityRole="button"
             scaleTo={0.99}
-            style={{ minHeight: 52, borderWidth: 1, borderColor: 'rgba(201,107,107,0.3)', borderRadius: 16, backgroundColor: '#FFFFFF', padding: 16, justifyContent: 'center' }}
+            style={{ minHeight: 52, borderWidth: 1, borderColor: colors.danger, borderRadius: radii.card, backgroundColor: colors.card, padding: 16, justifyContent: 'center', ...shadow.card }}
           >
-            <Text style={{ fontSize: 15, fontWeight: '500', color: colors.dangerInk }}>Delete account</Text>
+            <Text style={{ fontSize: 15, fontWeight: '500', color: colors.danger }}>Delete account</Text>
           </PressableScale>
         </RiseIn>
       </ScrollView>

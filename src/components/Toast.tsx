@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '../theme/tokens';
+import { colors, radii, shadow, spacing, type } from '../theme/tokens';
 
 // Lightweight confirmation toast for actions that complete in place
 // (data export requested, circle created, bookmark saved). Auto-dismisses.
@@ -31,19 +31,16 @@ export default function Toast({ message, onDismiss, duration = 3200 }: { message
         left: 20,
         right: 20,
         bottom: insets.bottom + 92,
-        backgroundColor: '#1B2621',
-        borderRadius: 16,
-        paddingVertical: 14,
-        paddingHorizontal: 16,
+        backgroundColor: colors.ink,
+        borderRadius: radii.button,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.standard,
         opacity: anim,
         transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
-        shadowColor: '#000',
-        shadowOpacity: 0.25,
-        shadowRadius: 18,
-        shadowOffset: { width: 0, height: 8 },
+        ...shadow.floating,
       }}
     >
-      <Text style={{ color: colors.inkOnDark, fontSize: 13.5, lineHeight: 20 }}>{message}</Text>
+      <Text style={{ ...type.caption, color: colors.inkOnPrimary, lineHeight: 20 }}>{message}</Text>
     </Animated.View>
   );
 }

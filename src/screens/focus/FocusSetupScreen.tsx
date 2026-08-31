@@ -10,7 +10,7 @@ import { listGoals, type AdhkarGoal } from '../../services/adhkar';
 import { listBlockedApps, addBlockedApp, removeBlockedApp, type BlockedApp, type AppPlatform } from '../../services/ibadahLock';
 import { pickAppsToBlock, isAppBlockingSupported } from '../../../modules/expo-ibadah-native';
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow, spacing, type } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import SecondaryButton from '../../components/SecondaryButton';
@@ -121,7 +121,7 @@ export default function FocusSetupScreen() {
     <ScreenFade duration={300} style={{ backgroundColor: colors.bg, paddingTop: insets.top + 12 }}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 34 }} showsVerticalScrollIndicator={false}>
         <SecondaryButton label="Close" onPress={nav.back} style={{ alignSelf: 'flex-start' }} />
-        <Text style={{ fontSize: 27, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025, marginTop: 12 }}>Ibadah Lock</Text>
+        <Text style={{ ...type.h1, color: colors.ink, marginTop: 12 }}>Ibadah Lock</Text>
         <Text style={{ fontSize: 15, lineHeight: 23, color: colors.inkMuted, marginTop: 9 }}>Choose your worship goal and the apps that stay out of reach until you finish it.</Text>
 
         {loading ? (
@@ -142,7 +142,7 @@ export default function FocusSetupScreen() {
                   onAction={nav.goalNew}
                 />
               ) : (
-                <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
+                <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, ...shadow.card }}>
                   {openGoals.map((g, i) => {
                     const selected = g.id === selectedGoalId;
                     return (
@@ -165,7 +165,7 @@ export default function FocusSetupScreen() {
                         }}
                       >
                         <View style={{ flex: 1, minWidth: 0 }}>
-                          <Text style={{ fontSize: 15.5, fontWeight: '500', color: colors.inkStrong }} numberOfLines={1}>
+                          <Text style={{ fontSize: 15.5, fontWeight: '500', color: colors.ink }} numberOfLines={1}>
                             {g.title}
                           </Text>
                           <Text style={{ fontSize: 12.5, color: colors.inkMuted, marginTop: 4 }}>Target {g.target}</Text>
@@ -176,13 +176,13 @@ export default function FocusSetupScreen() {
                             height: 22,
                             borderRadius: 11,
                             borderWidth: selected ? 0 : 1.5,
-                            borderColor: colors.cardBorderStrong,
+                            borderColor: colors.divider,
                             backgroundColor: selected ? colors.primary : 'transparent',
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}
                         >
-                          {selected && <CheckIcon size={11} color="#fff" />}
+                          {selected && <CheckIcon size={11} color={colors.inkOnPrimary} />}
                         </View>
                       </PressableScale>
                     );
@@ -191,7 +191,7 @@ export default function FocusSetupScreen() {
               )}
             </View>
 
-            <View style={{ marginTop: 18, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
+            <View style={{ marginTop: spacing.lg, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, ...shadow.card }}>
               <PressableScale
                 onPress={onCycleDuration}
                 disabled={busy}
@@ -200,7 +200,7 @@ export default function FocusSetupScreen() {
                 accessibilityLabel={`Focus duration, ${FOCUS_DURATIONS[durationIndex]}. Double tap to change.`}
                 style={{ padding: 18, minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', opacity: busy ? 0.6 : 1 }}
               >
-                <Text style={{ fontSize: 15.5, fontWeight: '500', color: colors.inkStrong }}>Focus duration</Text>
+                <Text style={{ fontSize: 15.5, fontWeight: '500', color: colors.ink }}>Focus duration</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={{ fontSize: 14, color: colors.inkMuted }}>{FOCUS_DURATIONS[durationIndex]}</Text>
                   <ChevronRightIcon />
@@ -208,9 +208,9 @@ export default function FocusSetupScreen() {
               </PressableScale>
             </View>
 
-            <View style={{ marginTop: 12, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', padding: 18 }}>
+            <View style={{ marginTop: spacing.md, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, padding: spacing.lg, ...shadow.card }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontSize: 15.5, fontWeight: '500', color: colors.inkStrong }}>Apps to restrict</Text>
+                <Text style={{ fontSize: 15.5, fontWeight: '500', color: colors.ink }}>Apps to restrict</Text>
                 <Text style={{ fontSize: 14, color: colors.inkMuted }}>{platformApps.length} selected</Text>
               </View>
 
@@ -228,11 +228,11 @@ export default function FocusSetupScreen() {
                       style={{
                         backgroundColor: colors.primaryTint,
                         borderWidth: 1,
-                        borderColor: 'rgba(61,115,201,0.35)',
+                        borderColor: colors.primary,
                         paddingVertical: 9,
                         paddingLeft: 12,
                         paddingRight: 8,
-                        borderRadius: 12,
+                        borderRadius: radii.pill,
                         flexDirection: 'row',
                         alignItems: 'center',
                         gap: 8,
@@ -268,8 +268,8 @@ export default function FocusSetupScreen() {
               </Text>
             </View>
 
-            <View style={{ marginTop: 12, borderRadius: 24, padding: 20, backgroundColor: colors.primaryTint, borderWidth: 1, borderColor: 'rgba(61,115,201,0.2)' }}>
-              <Text style={{ fontSize: 12.5, lineHeight: 20, color: '#3A5A7E' }}>
+            <View style={{ marginTop: spacing.md, borderRadius: radii.card, padding: spacing.lg, backgroundColor: colors.primaryTint, borderWidth: 1, borderColor: colors.primary }}>
+              <Text style={{ fontSize: 12.5, lineHeight: 20, color: colors.primaryStrong }}>
                 Calls, messages and emergency services remain available on both platforms. An “Emergency unlock” is always one tap away once a session starts.
               </Text>
             </View>

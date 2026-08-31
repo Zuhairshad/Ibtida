@@ -1,109 +1,106 @@
-// Design tokens ported from Claude Design handoff `Ibadah v5.dc.html`.
-// Every screen must consume these — no one-off hex values in component files.
+// Design tokens for the blue reference design shared 2026-08-31 (5-screen
+// Claude Design handoff: Dashboard, Prayers, Adhkar, Tasbeeh, Community).
+// Full rationale and component-pattern notes live in `docs/design-system.md`
+// — read that alongside this file.
+//
+// THIS IS NOT WIRED UP YET. `src/theme/tokens.ts` (the current warm/olive
+// palette) is still what every screen actually imports and renders with.
+// This file exists so the new palette has one place to live and iterate on
+// before any screen is repointed at it. When we do apply it, the intent is
+// to replace the contents of `tokens.ts` with (an evolved version of) this
+// file, not to have both files live long-term.
 
 export const colors = {
   // Surfaces
-  bg: '#FFFFFF',
-  bgTint: '#F1F3EE',
-  bgWash: '#F8F7F3',
+  bg: '#F6F7FB',
   card: '#FFFFFF',
-  cardBorder: 'rgba(23,32,28,0.06)',
-  cardBorderStrong: 'rgba(23,32,28,0.15)',
-  cardShadow: 'rgba(27,36,48,0.06)',
+  cardBorder: 'rgba(17,24,39,0.06)',
+  cardShadow: 'rgba(17,24,39,0.08)',
+  divider: 'rgba(17,24,39,0.08)',
 
   // Ink
-  ink: '#1B2430',
-  inkStrong: '#16323E',
-  inkSecondary: '#697382',
-  inkMuted: '#68716C',
-  inkFaint: '#6E7671',
-  inkOnDark: '#EFF3F0',
+  ink: '#111827',
+  inkSecondary: '#6B7280',
+  inkMuted: '#9CA3AF',
+  inkOnPrimary: '#FFFFFF',
 
   // Primary
-  primary: '#2A63B8', // AA-safe ink/fill for small text & CTAs
-  primaryFill: '#3B7DDE', // large fills, rings, bars only
-  primaryTint: '#DDEAF4',
-  primaryHover: '#2F68C0',
+  primary: '#3B82F6',
+  primaryStrong: '#2563EB',
+  primaryTint: '#EAF2FE',
 
-  // Success
-  success: '#5EAA78',
-  successStrong: '#4CA96B',
-  successText: '#2F8552',
-  successTint: '#E3F3EA',
-  successTintStrong: '#EDF7F0',
+  // Success (also the "current prayer" / active-state color)
+  success: '#22C55E',
+  successStrong: '#16A34A',
+  successTint: '#E7F8ED',
 
-  // Gold / champagne — illustration & decorative accents only, never functional UI chrome
-  gold: '#D9BE86',
-  goldTint: '#F3E7C9',
-  goldInk: '#7A5F1E',
-  goldInkDeep: '#6B5A38',
+  // Gold — Gratitude category, warm accents
+  gold: '#F59E0B',
+  goldTint: '#FEF3E0',
 
-  // Destructive
-  danger: '#C96B6B',
-  dangerInk: '#A24E4E',
+  // Purple — Forgiveness category, "Making Dua" stat
+  purple: '#8B5CF6',
+  purpleTint: '#F1EBFE',
 
-  // Prayer / category semantic colors (from PRAYER_TIMES)
-  fajr: { ink: '#4A7FC1', tint: '#DDEAF4' },
-  sunrise: { ink: '#C9902E', tint: '#FBF2DC' },
-  dhuhr: { ink: '#D9822E', tint: '#FBEBDA' },
-  asr: { ink: '#5EAA78', tint: '#E3F3EA' },
-  maghrib: { ink: '#C0563F', tint: '#F7DEDE' },
-  isha: { ink: '#2F4B6E', tint: '#DCE3EC' },
+  // Danger — not present in the reference; kept consistent with the rest
+  // of the system for destructive actions elsewhere in the app
+  danger: '#EF4444',
+  dangerTint: '#FDECEC',
 
-  divider: 'rgba(23,32,28,0.07)',
+  // Prayer semantic colors — each prayer's resting/default identity color.
+  // The *current* prayer always overrides to `success`/`successTint`
+  // regardless of which prayer it is (see docs/design-system.md §1).
+  fajr: { ink: '#3B82F6', tint: '#EAF2FE' },
+  sunrise: { ink: '#F59E0B', tint: '#FEF3E0' },
+  dhuhr: { ink: '#EA580C', tint: '#FDECDC' },
+  asr: { ink: '#22C55E', tint: '#E7F8ED' },
+  maghrib: { ink: '#DC5F41', tint: '#FBE4DE' },
+  isha: { ink: '#1E3A5F', tint: '#DCE4EE' },
 } as const;
 
 export const spacing = {
-  micro: 4,
-  tight: 8,
-  small: 12,
+  xs: 4,
+  sm: 8,
+  md: 12,
   standard: 16,
-  comfortable: 20,
-  section: 24,
-  large: 32,
-  major: 40,
+  lg: 20,
+  xl: 24,
+  xxl: 32,
 } as const;
 
 export const radii = {
-  control: 12,
-  button: 16,
-  card: 22,
-  cardLarge: 26,
-  hero: 30,
+  control: 10,
+  button: 14,
+  card: 20,
+  cardLarge: 24,
   pill: 999,
 } as const;
 
 export const type = {
-  displayLarge: { fontSize: 34, fontWeight: '600' as const, letterSpacing: -0.03 },
-  display: { fontSize: 27, fontWeight: '600' as const, letterSpacing: -0.025 },
-  h1: { fontSize: 24, fontWeight: '700' as const, letterSpacing: -0.025 },
-  h2: { fontSize: 20, fontWeight: '700' as const, letterSpacing: -0.02 },
-  h3: { fontSize: 17, fontWeight: '700' as const, letterSpacing: -0.01 },
-  body: { fontSize: 16, fontWeight: '400' as const },
-  bodyStrong: { fontSize: 16, fontWeight: '600' as const },
-  secondary: { fontSize: 14, fontWeight: '400' as const },
-  secondaryStrong: { fontSize: 14, fontWeight: '600' as const },
-  caption: { fontSize: 12.5, fontWeight: '400' as const },
-  captionStrong: { fontSize: 12.5, fontWeight: '600' as const },
-  numeral: { fontSize: 27, fontWeight: '700' as const, letterSpacing: -0.03 },
-  numeralLarge: { fontSize: 46, fontWeight: '600' as const, letterSpacing: -0.03 },
+  display: { fontSize: 28, fontWeight: '700' as const },
+  h1: { fontSize: 22, fontWeight: '700' as const },
+  h2: { fontSize: 18, fontWeight: '700' as const },
+  h3: { fontSize: 16, fontWeight: '600' as const },
+  body: { fontSize: 15, fontWeight: '400' as const },
+  bodyStrong: { fontSize: 15, fontWeight: '600' as const },
+  caption: { fontSize: 13, fontWeight: '400' as const },
+  captionStrong: { fontSize: 13, fontWeight: '600' as const },
+  numeral: { fontSize: 22, fontWeight: '700' as const },
 } as const;
-
-export const arabicFont = 'NotoNaskhArabic_500Medium';
 
 export const shadow = {
   card: {
-    shadowColor: '#1B2430',
+    shadowColor: '#111827',
     shadowOpacity: 0.06,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   floating: {
-    shadowColor: '#1B2430',
-    shadowOpacity: 0.16,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 8,
+    shadowColor: '#111827',
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
   },
 } as const;

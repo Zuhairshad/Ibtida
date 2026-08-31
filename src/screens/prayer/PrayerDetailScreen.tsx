@@ -10,7 +10,7 @@ import * as PrayerSettingsService from '../../services/prayerSettings';
 import type { PrayerCalcSettings } from '../../services/prayerSettings';
 import { classifyPrayersForDate, computePrayerTimes, formatPrayerTime, type PrayerClassification } from '../../lib/prayerTimes';
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow, spacing } from '../../theme/tokens';
 import BottomSheetModal from '../../components/BottomSheetModal';
 import PressableScale from '../../components/PressableScale';
 import Toggle from '../../components/Toggle';
@@ -116,12 +116,12 @@ export default function PrayerDetailScreen({ route }: Props) {
   // Status badge reflects this prayer's real time-window state, not a
   // hardcoded "Current".
   const status = isLogged
-    ? { label: 'Logged', bg: colors.successTint, ink: '#2F6B45' }
+    ? { label: 'Logged', bg: colors.primaryTint, ink: colors.primaryStrong }
     : classification === 'current'
-      ? { label: 'Current', bg: colors.primaryTint, ink: '#1F3E63' }
+      ? { label: 'Current', bg: colors.successTint, ink: colors.successStrong }
       : classification === 'done'
-        ? { label: 'Missed', bg: 'rgba(201,107,107,0.13)', ink: colors.dangerInk }
-        : { label: 'Upcoming', bg: colors.bgTint, ink: colors.inkMuted };
+        ? { label: 'Missed', bg: colors.dangerTint, ink: colors.danger }
+        : { label: 'Upcoming', bg: colors.primaryTint, ink: colors.inkMuted };
 
   const onMark = async () => {
     if (!user || marking || (upcoming && !isLogged)) return;
@@ -157,7 +157,7 @@ export default function PrayerDetailScreen({ route }: Props) {
     <BottomSheetModal visible onClose={nav.back}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <View>
-          <Text style={{ fontSize: 24, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.02 }}>{name}</Text>
+          <Text style={{ fontSize: 24, fontWeight: '600', color: colors.ink, letterSpacing: -0.02 }}>{name}</Text>
           <Text style={{ fontSize: 14, color: colors.inkMuted, marginTop: 8 }}>
             {timeLabel} · ends {endsAtLabel}
           </Text>
@@ -165,7 +165,7 @@ export default function PrayerDetailScreen({ route }: Props) {
         {loading ? (
           <SkeletonBlock width={64} height={30} radius={12} />
         ) : (
-          <View style={{ backgroundColor: status.bg, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 12 }}>
+          <View style={{ backgroundColor: status.bg, paddingVertical: 8, paddingHorizontal: 11, borderRadius: radii.pill }}>
             <Text style={{ fontSize: 12, fontWeight: '500', color: status.ink }}>{status.label}</Text>
           </View>
         )}
@@ -185,21 +185,21 @@ export default function PrayerDetailScreen({ route }: Props) {
               style={{
                 flex: 1,
                 minHeight: 48,
-                borderRadius: 14,
-                backgroundColor: on ? colors.primary : '#FFFFFF',
+                borderRadius: radii.button,
+                backgroundColor: on ? colors.primary : colors.card,
                 borderWidth: on ? 0 : 1,
-                borderColor: 'rgba(23,32,28,0.1)',
+                borderColor: colors.cardBorder,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ fontSize: 13.5, fontWeight: on ? '600' : '500', color: on ? '#FFFFFF' : colors.inkMuted }}>{label}</Text>
+              <Text style={{ fontSize: 13.5, fontWeight: on ? '600' : '500', color: on ? colors.inkOnPrimary : colors.inkMuted }}>{label}</Text>
             </PressableScale>
           );
         })}
       </View>
 
-      <View style={{ marginTop: 10, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 20, backgroundColor: '#FFFFFF', padding: 16 }}>
+      <View style={{ marginTop: spacing.sm, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, padding: spacing.standard, ...shadow.card }}>
         <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.09, textTransform: 'uppercase', color: colors.inkSecondary }}>Optional note</Text>
         <Text style={{ fontSize: 14, lineHeight: 21, color: colors.inkSecondary, marginTop: 10 }}>
           {isLogged ? 'Prayed at the masjid with Yusuf’s father.' : 'Add a note after you log this prayer.'}
@@ -220,14 +220,15 @@ export default function PrayerDetailScreen({ route }: Props) {
           justifyContent: 'space-between',
           borderWidth: 1,
           borderColor: colors.cardBorder,
-          borderRadius: 20,
-          backgroundColor: '#FFFFFF',
+          borderRadius: radii.card,
+          backgroundColor: colors.card,
           paddingVertical: 15,
           paddingHorizontal: 16,
           opacity: loading || adhanBusy ? 0.6 : 1,
+          ...shadow.card,
         }}
       >
-        <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkStrong }}>Adhan notification</Text>
+        <Text style={{ fontSize: 15, fontWeight: '500', color: colors.ink }}>Adhan notification</Text>
         <Toggle on={adhanOn} />
       </PressableScale>
 

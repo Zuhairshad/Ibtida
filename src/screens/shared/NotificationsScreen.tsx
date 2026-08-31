@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../state/AuthContext';
 import { getNotificationSettings } from '../../services/settings';
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow, spacing, type } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import EmptyState from '../../components/EmptyState';
@@ -17,9 +17,9 @@ import { ChevronLeftIcon, BellIcon, PrayerIcon, AdhkarIcon, BeadsIcon, Community
 // Ibadah today!!!").
 const ITEMS = [
   { cat: 'Prayer', title: 'Asr is in 25 minutes', body: 'Lahore · 3:40 pm', when: 'now', icon: PrayerIcon, tint: colors.asr.tint, ink: colors.asr.ink, go: nav.prayer },
-  { cat: 'Adhkar', title: 'Your evening adhkar are ready', body: '20 adhkar · about 8 minutes', when: '2h', icon: AdhkarIcon, tint: colors.goldTint, ink: colors.goldInk, go: nav.adhkar },
-  { cat: 'Goals', title: 'Durood Sharif — 33 of 100 today', body: 'Continue where you left off.', when: '5h', icon: BeadsIcon, tint: colors.successTint, ink: '#3B7A52', go: nav.tasbeeh },
-  { cat: 'Community', title: '10 Million Durood reached 64.8%', body: 'Milestone reached together.', when: '1d', icon: CommunityIcon, tint: colors.primaryTint, ink: '#2F5CA3', go: () => nav.communityGoal(0) },
+  { cat: 'Adhkar', title: 'Your evening adhkar are ready', body: '20 adhkar · about 8 minutes', when: '2h', icon: AdhkarIcon, tint: colors.goldTint, ink: colors.gold, go: nav.adhkar },
+  { cat: 'Goals', title: 'Durood Sharif — 33 of 100 today', body: 'Continue where you left off.', when: '5h', icon: BeadsIcon, tint: colors.successTint, ink: colors.successStrong, go: nav.tasbeeh },
+  { cat: 'Community', title: '10 Million Durood reached 64.8%', body: 'Milestone reached together.', when: '1d', icon: CommunityIcon, tint: colors.primaryTint, ink: colors.primaryStrong, go: () => nav.communityGoal(0) },
 ];
 
 type LoadState = 'loading' | 'error' | 'ready';
@@ -77,7 +77,7 @@ export default function NotificationsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <Text style={{ fontSize: 27, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025 }}>Notifications</Text>
+        <Text style={{ ...type.h1, color: colors.ink }}>Notifications</Text>
         <Text style={{ fontSize: 13.5, color: colors.inkMuted, marginTop: 9, lineHeight: 20, marginBottom: 18 }}>Only the categories you turned on in Privacy.</Text>
 
         {loadState === 'loading' ? (
@@ -107,13 +107,13 @@ export default function NotificationsScreen() {
                 scaleTo={0.985}
                 accessibilityRole="button"
                 accessibilityLabel={`${n.title}. ${n.body}`}
-                style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 20, padding: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'flex-start', gap: 13 }}
+                style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, padding: spacing.standard, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, ...shadow.card }}
               >
-                <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: n.tint, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 38, height: 38, borderRadius: radii.control, backgroundColor: n.tint, alignItems: 'center', justifyContent: 'center' }}>
                   <n.icon size={19} color={n.ink} />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: colors.inkStrong }}>{n.title}</Text>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>{n.title}</Text>
                   <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 5, lineHeight: 18 }}>{n.body}</Text>
                 </View>
                 <Text style={{ fontSize: 11.5, color: colors.inkSecondary }}>{n.when}</Text>

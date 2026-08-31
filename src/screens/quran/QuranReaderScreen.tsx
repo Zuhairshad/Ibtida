@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '../../state/AuthContext';
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow, spacing } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import Toast from '../../components/Toast';
@@ -54,12 +54,13 @@ export default function QuranReaderScreen() {
   const showTranslation = settings?.showTranslation ?? true;
   const night = settings?.night ?? false;
 
-  // Night reading theme per §18 — a warm dark ground, not an inverted grey.
-  const bg = night ? '#141A18' : '#FBFAF6';
-  const cardBg = night ? '#1D2523' : '#FFFFFF';
-  const ink = night ? colors.inkOnDark : colors.inkStrong;
-  const subInk = night ? 'rgba(239,243,240,0.6)' : colors.inkSecondary;
-  const border = night ? 'rgba(239,243,240,0.1)' : 'rgba(23,32,28,0.05)';
+  // The written blue system does not define a full dark palette. Reuse its
+  // coolest dark ink and Isha surface so night reading remains cohesive.
+  const bg = night ? colors.ink : colors.bg;
+  const cardBg = night ? colors.isha.ink : colors.card;
+  const ink = night ? colors.inkOnPrimary : colors.ink;
+  const subInk = night ? colors.inkMuted : colors.inkSecondary;
+  const border = night ? colors.inkSecondary : colors.cardBorder;
 
   const onBookmark = useCallback(async () => {
     if (!user || bookmarked === null) return;
@@ -126,7 +127,7 @@ export default function QuranReaderScreen() {
         </PressableScale>
         <Text style={{ fontSize: 14, fontWeight: '600', color: ink }}>Al-Baqarah</Text>
         <PressableScale onPress={onBookmark} accessibilityRole="button" accessibilityLabel={bookmarked ? 'Remove bookmark' : 'Bookmark this surah'} scaleTo={0.85} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-          <BookmarkIcon size={18} color={bookmarked ? colors.goldInk : subInk} />
+          <BookmarkIcon size={18} color={bookmarked ? colors.gold : subInk} />
         </PressableScale>
       </View>
 
@@ -137,9 +138,9 @@ export default function QuranReaderScreen() {
       ) : (
         <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 20, paddingBottom: 20 }}>
           {AYAT.map((a) => (
-            <View key={a.n} style={{ borderWidth: 1, borderColor: border, borderRadius: 24, padding: 22, backgroundColor: cardBg, marginBottom: 12 }}>
+            <View key={a.n} style={{ borderWidth: 1, borderColor: border, borderRadius: radii.card, padding: spacing.lg, backgroundColor: cardBg, marginBottom: spacing.md, ...(night ? {} : shadow.card) }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <View style={{ backgroundColor: night ? 'rgba(239,243,240,0.08)' : colors.bgTint, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 10 }}>
+                <View style={{ backgroundColor: night ? colors.primaryStrong : colors.primaryTint, paddingVertical: 7, paddingHorizontal: 10, borderRadius: radii.pill }}>
                   <Text style={{ fontSize: 12, fontWeight: '600', color: ink }}>2:{a.n}</Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
@@ -157,7 +158,7 @@ export default function QuranReaderScreen() {
                   </PressableScale>
                 </View>
               </View>
-              <View style={{ marginTop: 18, padding: 20, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: night ? 'rgba(239,243,240,0.18)' : 'rgba(23,32,28,0.14)', alignItems: 'center' }}>
+              <View style={{ marginTop: 18, padding: spacing.lg, borderRadius: radii.card, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.inkMuted, alignItems: 'center' }}>
                 {/* Arabic size control drives this block's type scale. */}
                 <Text style={{ fontSize: Math.round(arabicSize * 0.38), lineHeight: arabicSize * 0.6, color: subInk, textAlign: 'center' }}>
                   Arabic text loads from the licensed Mushaf source
@@ -188,7 +189,7 @@ export default function QuranReaderScreen() {
               accessibilityRole="button"
               accessibilityLabel="Decrease Arabic text size"
               scaleTo={0.94}
-              style={{ flex: 1, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: border, alignItems: 'center', justifyContent: 'center' }}
+              style={{ flex: 1, minHeight: 48, borderRadius: radii.button, borderWidth: 1, borderColor: border, alignItems: 'center', justifyContent: 'center' }}
             >
               <Text style={{ fontSize: 18, color: ink }}>A−</Text>
             </PressableScale>
@@ -197,7 +198,7 @@ export default function QuranReaderScreen() {
               accessibilityRole="button"
               accessibilityLabel="Increase Arabic text size"
               scaleTo={0.94}
-              style={{ flex: 1, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: border, alignItems: 'center', justifyContent: 'center' }}
+              style={{ flex: 1, minHeight: 48, borderRadius: radii.button, borderWidth: 1, borderColor: border, alignItems: 'center', justifyContent: 'center' }}
             >
               <Text style={{ fontSize: 22, color: ink }}>A+</Text>
             </PressableScale>
@@ -212,7 +213,7 @@ export default function QuranReaderScreen() {
           accessibilityState={{ expanded: panel === 'size' }}
           accessibilityLabel="Text size"
           scaleTo={0.97}
-          style={{ flex: 1, minHeight: 48, borderWidth: 1, borderColor: panel === 'size' ? colors.primary : border, backgroundColor: cardBg, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}
+          style={{ flex: 1, minHeight: 48, borderWidth: 1, borderColor: panel === 'size' ? colors.primary : border, backgroundColor: cardBg, borderRadius: radii.button, alignItems: 'center', justifyContent: 'center' }}
         >
           <Text style={{ fontSize: 13.5, fontWeight: '500', color: panel === 'size' ? colors.primary : subInk }}>Text size</Text>
         </PressableScale>
@@ -223,7 +224,7 @@ export default function QuranReaderScreen() {
           accessibilityState={{ checked: showTranslation }}
           accessibilityLabel="Show translation"
           scaleTo={0.97}
-          style={{ flex: 1, minHeight: 48, borderWidth: 1, borderColor: showTranslation ? colors.primary : border, backgroundColor: cardBg, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}
+          style={{ flex: 1, minHeight: 48, borderWidth: 1, borderColor: showTranslation ? colors.primary : border, backgroundColor: cardBg, borderRadius: radii.button, alignItems: 'center', justifyContent: 'center' }}
         >
           <Text style={{ fontSize: 13.5, fontWeight: '500', color: showTranslation ? colors.primary : subInk }}>Translation</Text>
         </PressableScale>
@@ -234,7 +235,7 @@ export default function QuranReaderScreen() {
           accessibilityState={{ checked: night }}
           accessibilityLabel="Night reading theme"
           scaleTo={0.97}
-          style={{ flex: 1, minHeight: 48, borderWidth: 1, borderColor: night ? colors.primary : border, backgroundColor: cardBg, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}
+          style={{ flex: 1, minHeight: 48, borderWidth: 1, borderColor: night ? colors.primary : border, backgroundColor: cardBg, borderRadius: radii.button, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}
         >
           <MoonIcon size={15} color={night ? colors.primary : subInk} />
           <Text style={{ fontSize: 13.5, fontWeight: '500', color: night ? colors.primary : subInk }}>Night</Text>

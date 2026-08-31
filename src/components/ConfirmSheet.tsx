@@ -3,7 +3,7 @@ import { Text } from 'react-native';
 import BottomSheetModal from './BottomSheetModal';
 import PressableScale from './PressableScale';
 import SecondaryButton from './SecondaryButton';
-import { colors } from '../theme/tokens';
+import { colors, radii, spacing, type } from '../theme/tokens';
 
 type Props = {
   visible: boolean;
@@ -23,22 +23,22 @@ export default function ConfirmSheet({ visible, title, body, confirmLabel, destr
   if (!visible) return null;
   return (
     <BottomSheetModal visible onClose={onCancel}>
-      <Text style={{ fontSize: 20, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.02 }}>{title}</Text>
-      <Text style={{ fontSize: 14.5, lineHeight: 23, color: colors.inkMuted, marginTop: 10 }}>{body}</Text>
+      <Text style={{ ...type.h2, color: colors.ink }}>{title}</Text>
+      <Text style={{ ...type.body, lineHeight: 23, color: colors.inkSecondary, marginTop: spacing.sm }}>{body}</Text>
       <PressableScale
         onPress={onConfirm}
         accessibilityRole="button"
         scaleTo={0.99}
         style={{
           minHeight: 52,
-          borderRadius: 16,
-          marginTop: 20,
+          borderRadius: radii.button,
+          marginTop: spacing.lg,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: destructive ? colors.dangerInk : colors.primary,
+          backgroundColor: destructive ? colors.danger : colors.primary,
         }}
       >
-        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>{confirmLabel}</Text>
+        <Text style={{ ...type.bodyStrong, color: colors.inkOnPrimary }}>{confirmLabel}</Text>
       </PressableScale>
       <SecondaryButton label="Cancel" onPress={onCancel} style={{ marginTop: 2 }} />
     </BottomSheetModal>

@@ -7,7 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../state/AuthContext';
 import { getTasbeehSession, setTasbeehCount } from '../../services/adhkar';
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, radii, spacing, type } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import ProgressRing from '../../components/ProgressRing';
@@ -96,7 +96,7 @@ export default function TasbeehScreen() {
 
   return (
     <ScreenFade duration={280} style={{ backgroundColor: colors.bg }}>
-      <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View style={{ paddingTop: insets.top + spacing.md, paddingHorizontal: spacing.xl, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <PressableScale onPress={nav.adhkar} scaleTo={1} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 5 }}>
           <ChevronLeftIcon color={colors.inkMuted} />
           <Text style={{ fontSize: 14, fontWeight: '500', color: colors.inkMuted }}>Adhkar</Text>
@@ -104,9 +104,9 @@ export default function TasbeehScreen() {
         <PressableScale
           onPress={nav.goalNew}
           scaleTo={1}
-          style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.1)', backgroundColor: '#FFFFFF', borderRadius: 12, paddingVertical: 9, paddingHorizontal: 13, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 7 }}
+          style={{ borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.card, borderRadius: radii.pill, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '500', color: colors.inkStrong }}>SubhanAllah</Text>
+          <Text style={{ fontSize: 13, fontWeight: '500', color: colors.ink }}>SubhanAllah</Text>
           <ChevronDownIcon color={colors.inkMuted} />
         </PressableScale>
       </View>
@@ -117,15 +117,15 @@ export default function TasbeehScreen() {
         </View>
       ) : (
         <PressableScale onPress={onTap} scaleTo={0.994} accessibilityRole="button" accessibilityLabel="Count one dhikr" style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
-          <ProgressRing size={272} strokeWidth={6} progress={frac} trackColor="rgba(23,32,28,0.06)" color="#3D73C9">
+          <ProgressRing size={272} strokeWidth={6} progress={frac} trackColor={colors.primaryTint} color={colors.primary}>
             <View style={{ alignItems: 'center' }}>
-              <Text style={{ fontFamily: 'NotoNaskhArabic_500Medium', fontSize: 20, color: colors.goldInk, marginBottom: 16 }}>سُبْحَانَ اللهِ</Text>
-              <Text style={{ fontSize: 76, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.04 }}>{count}</Text>
+              <Text style={{ fontFamily: 'NotoNaskhArabic_500Medium', fontSize: 20, color: colors.gold, marginBottom: spacing.standard }}>سُبْحَانَ اللهِ</Text>
+              <Text style={{ fontSize: 76, fontWeight: '600', color: colors.ink, letterSpacing: -0.04 }}>{count}</Text>
               <Text style={{ fontSize: 17, fontWeight: '500', color: colors.inkSecondary, marginTop: 6 }}>/ {target}</Text>
-              <Text style={{ fontSize: 14, color: colors.inkMuted, marginTop: 14 }}>SubhanAllah</Text>
+              <Text style={{ ...type.caption, color: colors.inkMuted, marginTop: spacing.md }}>SubhanAllah</Text>
             </View>
           </ProgressRing>
-          <Text style={{ fontSize: 13, color: colors.inkFaint, marginTop: 26 }}>Tap anywhere to count</Text>
+          <Text style={{ ...type.caption, color: colors.inkMuted, marginTop: spacing.xl }}>Tap anywhere to count</Text>
         </PressableScale>
       )}
 
@@ -143,15 +143,15 @@ export default function TasbeehScreen() {
               scaleTo={0.97}
               accessibilityRole="button"
               accessibilityLabel={b.label === '+5' ? 'Add five' : b.label}
-              style={{ flex: 1, minHeight: 52, borderWidth: 1, borderColor: 'rgba(23,32,28,0.09)', backgroundColor: '#FFFFFF', padding: 15, borderRadius: 16, alignItems: 'center', opacity: loading ? 0.5 : 1 }}
+              style={{ flex: 1, minHeight: 52, borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.card, padding: spacing.standard, borderRadius: radii.pill, alignItems: 'center', opacity: loading ? 0.5 : 1 }}
             >
-              <Text style={{ fontSize: 14, fontWeight: '500', color: colors.inkMuted }}>{b.label}</Text>
+              <Text style={{ ...type.captionStrong, color: colors.ink }}>{b.label}</Text>
             </PressableScale>
           ))}
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 14 }}>
-          <CheckIcon size={12} color={colors.inkFaint} />
-          <Text style={{ fontSize: 12, color: colors.inkFaint }}>Synced to your account · haptics on</Text>
+          <CheckIcon size={12} color={colors.inkMuted} />
+          <Text style={{ fontSize: 12, color: colors.inkMuted }}>Synced to your account · haptics on</Text>
         </View>
       </View>
 

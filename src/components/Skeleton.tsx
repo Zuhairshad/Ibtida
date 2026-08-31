@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, DimensionValue, View } from 'react-native';
+import { colors, radii, spacing } from '../theme/tokens';
 
 // Shimmering loading placeholder — every screen that fetches data gets a
 // real skeleton variant here, never a bare "Loading..." spinner.
-export function SkeletonBlock({ width, height, radius = 12, style }: { width: DimensionValue; height: number; radius?: number; style?: object }) {
+export function SkeletonBlock({ width, height, radius = radii.control, style }: { width: DimensionValue; height: number; radius?: number; style?: object }) {
   const [opacity] = useState(() => new Animated.Value(0.5));
 
   useEffect(() => {
@@ -17,23 +18,23 @@ export function SkeletonBlock({ width, height, radius = 12, style }: { width: Di
     return () => loop.stop();
   }, [opacity]);
 
-  return <Animated.View style={[{ width, height, borderRadius: radius, backgroundColor: '#EEF0F3', opacity }, style]} />;
+  return <Animated.View style={[{ width, height, borderRadius: radius, backgroundColor: colors.primaryTint, opacity }, style]} />;
 }
 
 export function HomeSkeleton() {
   return (
-    <View style={{ paddingHorizontal: 20, paddingTop: 58 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+    <View style={{ paddingHorizontal: spacing.lg, paddingTop: 58 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
         <SkeletonBlock width={46} height={46} radius={23} />
-        <View style={{ flex: 1, gap: 9 }}>
+        <View style={{ flex: 1, gap: spacing.sm }}>
           <SkeletonBlock width="62%" height={15} />
           <SkeletonBlock width="40%" height={11} />
         </View>
       </View>
-      <SkeletonBlock width="100%" height={196} radius={22} style={{ marginTop: 20 }} />
-      <SkeletonBlock width="100%" height={78} radius={22} style={{ marginTop: 14 }} />
-      <SkeletonBlock width="100%" height={144} radius={22} style={{ marginTop: 22 }} />
-      <View style={{ flexDirection: 'row', gap: 7, marginTop: 12 }}>
+      <SkeletonBlock width="100%" height={196} radius={radii.card} style={{ marginTop: spacing.lg }} />
+      <SkeletonBlock width="100%" height={78} radius={radii.card} style={{ marginTop: spacing.md }} />
+      <SkeletonBlock width="100%" height={144} radius={radii.card} style={{ marginTop: spacing.lg }} />
+      <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
         {[1, 2, 3, 4, 5].map((n) => (
           <SkeletonBlock key={n} width="100%" height={76} radius={15} style={{ flex: 1 }} />
         ))}

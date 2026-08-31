@@ -1,6 +1,7 @@
 // Icon set ported 1:1 from the SVG defs in `Ibadah v5.dc.html`'s SVG object.
 import React from 'react';
 import Svg, { Circle, Path } from 'react-native-svg';
+import { colors } from './tokens';
 
 type IconProps = { size?: number; color?: string };
 
@@ -98,7 +99,7 @@ export const TimerIcon = ({ size = 21, color = 'currentColor' }: IconProps) => (
   </Svg>
 );
 
-export const ChevronRightIcon = ({ size = 16, color = '#B9BEB7' }: IconProps) => (
+export const ChevronRightIcon = ({ size = 16, color = colors.inkMuted }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 16 16" fill="none">
     <Path d="M6 3.5L10.5 8 6 12.5" stroke={color} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
@@ -116,86 +117,86 @@ export const ChevronDownIcon = ({ size = 12, color = 'currentColor' }: IconProps
   </Svg>
 );
 
-export const CheckIcon = ({ size = 16, color = '#fff' }: IconProps) => (
+export const CheckIcon = ({ size = 16, color = colors.inkOnPrimary }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 12 12" fill="none">
     <Path d="M2.4 6.3l2.5 2.5L9.7 3.6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
-export const PinIcon = ({ size = 11, color = '#697382' }: IconProps) => (
+export const PinIcon = ({ size = 11, color = colors.inkSecondary }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 16 16" fill="none">
     <Path d="M8 14.5s5-4.2 5-8a5 5 0 1 0-10 0c0 3.8 5 8 5 8z" stroke={color} strokeWidth={1.4} />
     <Circle cx={8} cy={6.4} r={1.6} stroke={color} strokeWidth={1.4} />
   </Svg>
 );
 
-export const BellIcon = ({ size = 20, color = '#5B6472' }: IconProps) => (
+export const BellIcon = ({ size = 20, color = colors.inkSecondary }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
     <Path d="M4 8a6 6 0 0 1 12 0c0 3.4 1.2 4.6 1.6 5H2.4c.4-.4 1.6-1.6 1.6-5z" stroke={color} strokeWidth={1.5} strokeLinejoin="round" />
     <Path d="M8 15.5a2 2 0 0 0 4 0" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
   </Svg>
 );
 
-export const ArrowRightIcon = ({ size = 15, color = '#FFFFFF' }: IconProps) => (
+export const ArrowRightIcon = ({ size = 15, color = colors.inkOnPrimary }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 16 16" fill="none">
     <Path d="M6 3.5L10.5 8 6 12.5" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
-export const QiblaIcon = ({ size = 15, color = '#2A63B8' }: IconProps) => (
+export const QiblaIcon = ({ size = 15, color = colors.primaryStrong }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Circle cx={12} cy={12} r={8.6} stroke={color} strokeWidth={1.7} />
     <Path d="M15.2 8.8l-2 4.4-4.4 2 2-4.4z" fill={color} />
   </Svg>
 );
 
-export const TrendUpIcon = ({ size = 12, color = '#5EAA78' }: IconProps) => (
+export const TrendUpIcon = ({ size = 12, color = colors.successStrong }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 12 12" fill="none">
     <Path d="M6 9.5V2.5M6 2.5L3 5.5M6 2.5l3 3" stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
-export const PlusIcon = ({ size = 16, color = '#5EAA78' }: IconProps) => (
+export const PlusIcon = ({ size = 16, color = colors.successStrong }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M12 5v14M5 12h14" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
   </Svg>
 );
 
-export const SearchIcon = ({ size = 16, color = '#B9BEB7' }: IconProps) => (
+export const SearchIcon = ({ size = 16, color = colors.inkMuted }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 16 16" fill="none">
     <Circle cx={7} cy={7} r={4.6} stroke={color} strokeWidth={1.5} />
     <Path d="M10.6 10.6L14 14" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
   </Svg>
 );
 
-export const WarningIcon = ({ size = 16, color = '#8A6B24' }: IconProps) => (
+export const WarningIcon = ({ size = 16, color = colors.gold }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 16 16" fill="none">
     <Path d="M8 1.8l6 11.4H2z" stroke={color} strokeWidth={1.4} strokeLinejoin="round" />
     <Path d="M8 6.4v3M8 11.4v.1" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
   </Svg>
 );
 
-export const OfflineIcon = ({ size = 24, color = '#68716C' }: IconProps) => (
+export const OfflineIcon = ({ size = 24, color = colors.inkSecondary }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M4 8a12 12 0 0 1 16 0M7.5 12a8 8 0 0 1 9 0M12 17.5v.1" stroke={color} strokeWidth={1.7} strokeLinecap="round" />
-    <Path d="M4 4l16 16" stroke="#C96B6B" strokeWidth={1.7} strokeLinecap="round" />
+    <Path d="M4 4l16 16" stroke={colors.danger} strokeWidth={1.7} strokeLinecap="round" />
   </Svg>
 );
 
-export const BookmarkIcon = ({ size = 16, color = '#B9BEB7' }: IconProps) => (
+export const BookmarkIcon = ({ size = 16, color = colors.inkMuted }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 18 18" fill="none">
     <Path d="M4.5 2.5h9v13l-4.5-3.4L4.5 15.5z" stroke={color} strokeWidth={1.5} strokeLinejoin="round" />
   </Svg>
 );
 
-export const PlayIcon = ({ size = 16, color = '#B9BEB7' }: IconProps) => (
+export const PlayIcon = ({ size = 16, color = colors.inkMuted }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 18 18" fill="none">
     <Circle cx={9} cy={9} r={6.5} stroke={color} strokeWidth={1.5} />
     <Path d="M7.5 6.4l4 2.6-4 2.6z" fill={color} />
   </Svg>
 );
 
-export const MoreIcon = ({ size = 16, color = '#B9BEB7' }: IconProps) => (
+export const MoreIcon = ({ size = 16, color = colors.inkMuted }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 18 18" fill="none">
     <Circle cx={4} cy={9} r={1.4} fill={color} />
     <Circle cx={9} cy={9} r={1.4} fill={color} />
@@ -203,10 +204,10 @@ export const MoreIcon = ({ size = 16, color = '#B9BEB7' }: IconProps) => (
   </Svg>
 );
 
-export const NavCompassIcon = ({ size = 104, angleDeg, color = '#2A63B8' }: IconProps & { angleDeg: number }) => (
+export const NavCompassIcon = ({ size = 104, angleDeg, color = colors.primaryStrong }: IconProps & { angleDeg: number }) => (
   <Svg width={size} height={size} viewBox="0 0 104 104" fill="none" style={{ transform: [{ rotate: `${angleDeg}deg` }] }}>
     <Path d="M52 14l9 30-9-6-9 6z" fill={color} />
-    <Path d="M52 90l-7-24 7 4 7-4z" fill="#C7D2E0" />
+    <Path d="M52 90l-7-24 7 4 7-4z" fill={colors.primaryTint} />
   </Svg>
 );
 

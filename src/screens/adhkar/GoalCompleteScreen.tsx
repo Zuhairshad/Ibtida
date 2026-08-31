@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../state/AuthContext';
 import { continueCounting } from '../../services/adhkar';
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, type } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import ProgressRing from '../../components/ProgressRing';
 import PrimaryButton from '../../components/PrimaryButton';
@@ -42,14 +42,14 @@ export default function GoalCompleteScreen() {
         paddingBottom: insets.bottom + 20,
       }}
     >
-      <ProgressRing size={200} strokeWidth={6} progress={1} trackColor="rgba(23,32,28,0.06)" color="#3D73C9" animate={false}>
+      <ProgressRing size={200} strokeWidth={6} progress={1} trackColor={colors.successTint} color={colors.success} animate={false}>
         <View style={{ alignItems: 'center' }}>
-          <Text style={{ fontSize: 46, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.03 }}>100</Text>
+          <Text style={{ fontSize: 46, fontWeight: '600', color: colors.ink, letterSpacing: -0.03 }}>100</Text>
           <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkSecondary, marginTop: 8 }}>/ 100</Text>
         </View>
       </ProgressRing>
-      <Text style={{ fontSize: 27, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025, marginTop: 34, textAlign: 'center' }}>Goal complete</Text>
-      <Text style={{ fontFamily: 'NotoNaskhArabic_500Medium', fontSize: 24, lineHeight: 40, color: colors.inkStrong, marginTop: 16 }}>اَلْحَمْدُ لِلَّهِ</Text>
+      <Text style={{ ...type.h1, color: colors.ink, marginTop: 34, textAlign: 'center' }}>Goal complete</Text>
+      <Text style={{ fontFamily: 'NotoNaskhArabic_500Medium', fontSize: 24, lineHeight: 40, color: colors.ink, marginTop: 16 }}>اَلْحَمْدُ لِلَّهِ</Text>
       <Text style={{ fontSize: 16, lineHeight: 26, color: colors.inkMuted, marginTop: 12, maxWidth: 280, textAlign: 'center' }}>Alhamdulillah. May Allah accept your worship.</Text>
       <View style={{ width: '100%', marginTop: 40, gap: 8 }}>
         <PrimaryButton label="Done" onPress={nav.home} />

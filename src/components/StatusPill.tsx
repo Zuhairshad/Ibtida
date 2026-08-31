@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text, View } from 'react-native';
+import { radii, spacing, type } from '../theme/tokens';
 
 type Props = {
   label: string;
@@ -10,8 +11,8 @@ type Props = {
 
 export default function StatusPill({ label, bg, ink, fontSize = 12.5 }: Props) {
   return (
-    <View style={{ backgroundColor: bg, paddingVertical: 7, paddingHorizontal: 11, borderRadius: 11 }}>
-      <Text style={{ fontSize, fontWeight: '500', color: ink }}>{label}</Text>
+    <View style={{ backgroundColor: bg, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radii.pill }}>
+      <Text style={{ ...type.captionStrong, fontSize, color: ink }}>{label}</Text>
     </View>
   );
 }

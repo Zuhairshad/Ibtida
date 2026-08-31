@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../state/AuthContext';
 import { listMyCircles, MyCircle } from '../../services/community';
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow, spacing, type } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import { RowSkeleton } from '../../components/Skeleton';
@@ -49,14 +49,14 @@ export default function CirclesScreen() {
             onPress={nav.circleNew}
             accessibilityRole="button"
             scaleTo={0.95}
-            style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.1)', backgroundColor: '#FFFFFF', borderRadius: 12, minHeight: 44, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' }}
+            style={{ borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.card, borderRadius: radii.pill, minHeight: 44, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.inkStrong }}>New circle</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.ink }}>New circle</Text>
           </PressableScale>
         </RiseIn>
 
         <RiseIn delay={60} style={{ paddingHorizontal: 24, marginTop: 14 }}>
-          <Text style={{ fontSize: 27, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025 }}>Circles</Text>
+          <Text style={{ ...type.h1, color: colors.ink }}>Circles</Text>
           <Text style={{ fontSize: 13.5, color: colors.inkMuted, marginTop: 9, lineHeight: 20 }}>Private groups. Invite only unless you change it.</Text>
         </RiseIn>
 
@@ -74,17 +74,17 @@ export default function CirclesScreen() {
           ) : (
             <View style={{ gap: 10 }}>
               {circles.map((c) => (
-                <View key={c.id} style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 24, padding: 20, backgroundColor: '#FFFFFF' }}>
+                <View key={c.id} style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, padding: spacing.lg, backgroundColor: colors.card, ...shadow.card }}>
                   <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 17, fontWeight: '600', color: colors.inkStrong }}>{c.name}</Text>
+                      <Text style={{ fontSize: 17, fontWeight: '600', color: colors.ink }}>{c.name}</Text>
                       <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 6 }}>
                         {c.memberCount} {c.memberCount === 1 ? 'member' : 'members'} · {c.privacy}
                       </Text>
                     </View>
                     {c.role === 'owner' && (
-                      <View style={{ backgroundColor: colors.bgTint, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 10 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: colors.inkStrong }}>Owner</Text>
+                      <View style={{ backgroundColor: colors.primaryTint, paddingVertical: 7, paddingHorizontal: 10, borderRadius: radii.pill }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: colors.ink }}>Owner</Text>
                       </View>
                     )}
                   </View>

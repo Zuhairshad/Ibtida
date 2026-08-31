@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../state/AuthContext';
 import { getOverrideHistory, countOverridesSince, type EmergencyOverrideEntry } from '../../services/ibadahLock';
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import EmptyState from '../../components/EmptyState';
@@ -65,7 +65,7 @@ export default function EmergencyHistoryScreen() {
         <PressableScale onPress={nav.back} scaleTo={1} style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -10 }}>
           <ChevronLeftIcon color={colors.inkMuted} />
         </PressableScale>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.inkStrong }}>Emergency unlock history</Text>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>Emergency unlock history</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 14, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
@@ -97,12 +97,12 @@ export default function EmergencyHistoryScreen() {
           </View>
         ) : (
           <>
-            <View style={{ marginTop: 18, borderRadius: 20, padding: 18, backgroundColor: colors.bgTint, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 13.5, fontWeight: '500', color: colors.inkStrong }}>This week</Text>
-              <Text style={{ fontSize: 15, fontWeight: '600', color: colors.inkStrong }}>{weekCount} time{weekCount === 1 ? '' : 's'}</Text>
+            <View style={{ marginTop: 18, borderRadius: radii.card, padding: 18, backgroundColor: colors.primaryTint, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ fontSize: 13.5, fontWeight: '500', color: colors.ink }}>This week</Text>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>{weekCount} time{weekCount === 1 ? '' : 's'}</Text>
             </View>
 
-            <View style={{ marginTop: 14, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
+            <View style={{ marginTop: 14, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, ...shadow.card }}>
               {entries.map((entry, i) => (
                 <View
                   key={entry.id}
@@ -118,7 +118,7 @@ export default function EmergencyHistoryScreen() {
                   }}
                 >
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ fontSize: 14.5, fontWeight: '500', color: colors.inkStrong }}>{formatEntryDate(entry.usedAt)}</Text>
+                    <Text style={{ fontSize: 14.5, fontWeight: '500', color: colors.ink }}>{formatEntryDate(entry.usedAt)}</Text>
                     {!!entry.reason && (
                       <Text style={{ fontSize: 12.5, color: colors.inkMuted, marginTop: 4 }} numberOfLines={2}>
                         {entry.reason}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Animated } from 'react-native';
-import { colors } from '../theme/tokens';
+import { colors, shadow } from '../theme/tokens';
 
 // Shared switch used by Prayer detail (adhan), Privacy (notification
 // categories) and Focus setup (apps to restrict). Purely presentational —
@@ -19,7 +19,7 @@ export default function Toggle({ on, disabled }: { on: boolean; disabled?: boole
         height: 29,
         borderRadius: 15,
         opacity: disabled ? 0.5 : 1,
-        backgroundColor: anim.interpolate({ inputRange: [0, 1], outputRange: ['#D7DBE0', colors.success] }),
+        backgroundColor: anim.interpolate({ inputRange: [0, 1], outputRange: [colors.inkMuted, colors.success] }),
         justifyContent: 'center',
       }}
     >
@@ -28,12 +28,9 @@ export default function Toggle({ on, disabled }: { on: boolean; disabled?: boole
           width: 24,
           height: 24,
           borderRadius: 12,
-          backgroundColor: '#fff',
+          backgroundColor: colors.card,
           marginLeft: anim.interpolate({ inputRange: [0, 1], outputRange: [2.5, 21.5] }),
-          shadowColor: '#000',
-          shadowOpacity: 0.2,
-          shadowRadius: 3,
-          shadowOffset: { width: 0, height: 1 },
+          ...shadow.card,
         }}
       />
     </Animated.View>

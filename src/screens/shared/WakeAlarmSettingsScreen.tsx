@@ -7,7 +7,7 @@ import { getAllAlarmConfigs, setAlarmEnabled, type PrayerAlarmConfig } from '../
 import { syncWakeAlarmSchedule, WAKE_ALARM_SCHEDULE_DAYS } from '../../services/wakeAlarmScheduling';
 import { PRAYER_NAMES, type PrayerName } from '../../services/prayers';
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import Toggle from '../../components/Toggle';
@@ -109,7 +109,7 @@ export default function WakeAlarmSettingsScreen() {
         <PressableScale onPress={nav.back} scaleTo={1} style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -10 }}>
           <ChevronLeftIcon color={colors.inkMuted} />
         </PressableScale>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.inkStrong }}>Wake-verification alarm</Text>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>Wake-verification alarm</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 14, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
@@ -131,7 +131,7 @@ export default function WakeAlarmSettingsScreen() {
           </View>
         ) : (
           <>
-            <View style={{ marginTop: 20, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 24, backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
+            <View style={{ marginTop: 20, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, backgroundColor: colors.card, ...shadow.card }}>
               {PRAYER_NAMES.map((name, i) => {
                 const config = configs[name];
                 const tint = PRAYER_TINTS[name];
@@ -150,11 +150,11 @@ export default function WakeAlarmSettingsScreen() {
                       minHeight: 60,
                     }}
                   >
-                    <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: tint.tint, alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{ width: 34, height: 34, borderRadius: radii.control, backgroundColor: tint.tint, alignItems: 'center', justifyContent: 'center' }}>
                       <BellIcon size={16} color={tint.ink} />
                     </View>
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={{ fontSize: 15, fontWeight: '600', color: colors.inkStrong }}>{name}</Text>
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>{name}</Text>
                       <PressableScale
                         onPress={() => nav.prayerMatTag(name)}
                         scaleTo={1}

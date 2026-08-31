@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import { colors } from '../theme/tokens';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -17,7 +18,7 @@ type Props = {
 // Circular progress ring — the workhorse visualization used for daily
 // completion %, next-prayer countdown, tasbeeh counter, goal progress and
 // Quran reading progress across the app.
-export default function ProgressRing({ size, strokeWidth, progress, trackColor = '#EDF0F4', color = '#4E8FE0', children, animate = true }: Props) {
+export default function ProgressRing({ size, strokeWidth, progress, trackColor = colors.primaryTint, color = colors.primary, children, animate = true }: Props) {
   const r = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * r;
   const [anim] = useState(() => new Animated.Value(0));

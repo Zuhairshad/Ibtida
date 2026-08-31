@@ -6,7 +6,7 @@ import { RouteProp, useFocusEffect, useRoute } from '@react-navigation/native';
 import { useAuth } from '../../state/AuthContext';
 import { listCommunityGoals, joinCommunityGoal, CommunityGoal } from '../../services/community';
 import { nav } from '../../navigation/navigate';
-import { colors } from '../../theme/tokens';
+import { colors, radii, shadow, spacing, type } from '../../theme/tokens';
 import { RiseIn } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
 import ProgressRing from '../../components/ProgressRing';
@@ -92,18 +92,18 @@ export default function CommunityGoalScreen() {
         </RiseIn>
 
         <RiseIn delay={60} style={{ paddingHorizontal: 24, marginTop: 12 }}>
-          <View style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 30, padding: 26, backgroundColor: '#FBF8F1' }}>
-            <Text style={{ fontSize: 26, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025 }}>{goal.name}</Text>
+          <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.cardLarge, padding: spacing.xl, backgroundColor: colors.card, ...shadow.card }}>
+            <Text style={{ ...type.h1, color: colors.ink }}>{goal.name}</Text>
             <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 22, alignSelf: 'center' }}>
-              <ProgressRing size={180} strokeWidth={8} progress={pct / 100} trackColor={colors.bgTint} color="#3D73C9">
+              <ProgressRing size={180} strokeWidth={8} progress={pct / 100} trackColor={colors.successTint} color={colors.success}>
                 <View style={{ alignItems: 'center' }}>
-                  <Text style={{ fontSize: 34, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.03 }}>{pct}%</Text>
+                  <Text style={{ fontSize: 34, fontWeight: '600', color: colors.ink, letterSpacing: -0.03 }}>{pct}%</Text>
                   <Text style={{ fontSize: 12.5, color: colors.inkSecondary, marginTop: 8 }}>of the goal</Text>
                 </View>
               </ProgressRing>
             </View>
             <View style={{ alignItems: 'center', marginTop: 18 }}>
-              <Text style={{ fontSize: 17, fontWeight: '500', color: colors.inkStrong }}>
+              <Text style={{ fontSize: 17, fontWeight: '500', color: colors.ink }}>
                 {goal.totalProgress.toLocaleString()} / {goal.target.toLocaleString()}
                 {unit}
               </Text>
@@ -115,16 +115,16 @@ export default function CommunityGoalScreen() {
         </RiseIn>
 
         <RiseIn delay={110} style={{ paddingHorizontal: 24, marginTop: 12 }}>
-          <View style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 24, padding: 20, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ borderWidth: 1, borderColor: colors.cardBorder, borderRadius: radii.card, padding: spacing.lg, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...shadow.card }}>
             <View>
               <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary }}>Your contribution</Text>
-              <Text style={{ fontSize: 24, fontWeight: '600', color: colors.inkStrong, letterSpacing: -0.025, marginTop: 11 }}>
+              <Text style={{ fontSize: 24, fontWeight: '600', color: colors.ink, letterSpacing: -0.025, marginTop: 11 }}>
                 {goal.joined ? goal.myProgress.toLocaleString() : '—'}
               </Text>
             </View>
             {goal.joined ? (
-              <View style={{ backgroundColor: colors.bgTint, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '500', color: colors.inkStrong }}>Joined</Text>
+              <View style={{ backgroundColor: colors.successTint, paddingVertical: 8, paddingHorizontal: 11, borderRadius: radii.pill }}>
+                <Text style={{ fontSize: 12, fontWeight: '500', color: colors.successStrong }}>Joined</Text>
               </View>
             ) : (
               <PressableScale
@@ -132,17 +132,17 @@ export default function CommunityGoalScreen() {
                 disabled={joining}
                 scaleTo={0.94}
                 accessibilityRole="button"
-                style={{ backgroundColor: colors.primary, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 12, opacity: joining ? 0.6 : 1 }}
+                style={{ backgroundColor: colors.primary, paddingVertical: 9, paddingHorizontal: 14, borderRadius: radii.button, opacity: joining ? 0.6 : 1 }}
               >
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#FFFFFF' }}>Join</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.inkOnPrimary }}>Join</Text>
               </PressableScale>
             )}
           </View>
         </RiseIn>
 
         <RiseIn delay={150} style={{ paddingHorizontal: 24, marginTop: 12 }}>
-          <View style={{ borderRadius: 22, padding: 17, backgroundColor: colors.goldTint }}>
-            <Text style={{ fontSize: 12.5, lineHeight: 20, color: colors.goldInkDeep }}>
+          <View style={{ borderRadius: radii.card, padding: 17, backgroundColor: colors.goldTint }}>
+            <Text style={{ fontSize: 12.5, lineHeight: 20, color: colors.gold }}>
               A shared total is company on the way, not a claim about reward. Ibadah makes no theological promise about what a number means.
             </Text>
           </View>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, StyleProp, Text, ViewStyle } from 'react-native';
 import PressableScale from './PressableScale';
-import { colors, radii } from '../theme/tokens';
+import { colors, radii, spacing, type } from '../theme/tokens';
 
 type Props = {
   label: string;
@@ -21,18 +21,18 @@ export default function PrimaryButton({ label, onPress, disabled, loading, style
         {
           minHeight: 52,
           borderRadius: radii.button,
-          backgroundColor: disabled ? colors.cardBorderStrong : colors.primary,
+          backgroundColor: disabled ? colors.inkMuted : colors.primary,
           alignItems: 'center',
           justifyContent: 'center',
-          paddingHorizontal: 16,
+          paddingHorizontal: spacing.standard,
         },
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={colors.inkOnPrimary} />
       ) : (
-        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>{label}</Text>
+        <Text style={{ ...type.bodyStrong, color: colors.inkOnPrimary }}>{label}</Text>
       )}
     </PressableScale>
   );

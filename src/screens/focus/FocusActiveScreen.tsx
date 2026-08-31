@@ -23,6 +23,7 @@ import ProgressRing from '../../components/ProgressRing';
 import ConfirmSheet from '../../components/ConfirmSheet';
 import { SkeletonBlock } from '../../components/Skeleton';
 import Toast from '../../components/Toast';
+import { colors, radii } from '../../theme/tokens';
 
 const CURRENT_PLATFORM: AppPlatform = Platform.OS === 'ios' ? 'ios' : 'android';
 // Fixed for the process lifetime — see the same constant's comment in
@@ -219,40 +220,40 @@ export default function FocusActiveScreen() {
         : 'Apps unlocked';
 
   return (
-    <ScreenFade duration={400} style={{ backgroundColor: '#1B2621' }}>
+    <ScreenFade duration={400} style={{ backgroundColor: colors.ink }}>
       <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: 'rgba(239,243,240,0.45)' }}>
+        <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkOnPrimary, opacity: 0.5 }}>
           {isLocked ? 'Ibadah Lock' : 'Ibadah Focus'}
         </Text>
-        {!!lockStatusLabel && <Text style={{ fontSize: 12.5, fontWeight: '500', color: 'rgba(239,243,240,0.45)' }}>{lockStatusLabel}</Text>}
+        {!!lockStatusLabel && <Text style={{ fontSize: 12.5, fontWeight: '500', color: colors.inkOnPrimary, opacity: 0.5 }}>{lockStatusLabel}</Text>}
       </View>
 
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <SkeletonBlock width={236} height={236} radius={118} style={{ backgroundColor: 'rgba(239,243,240,0.08)' }} />
+          <SkeletonBlock width={236} height={236} radius={118} style={{ backgroundColor: colors.isha.ink }} />
         </View>
       ) : (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 }}>
-          <ProgressRing size={236} strokeWidth={4} progress={target > 0 ? count / target : 0} trackColor="rgba(239,243,240,0.1)" color="#3D73C9">
+          <ProgressRing size={236} strokeWidth={4} progress={target > 0 ? count / target : 0} trackColor={colors.isha.ink} color={colors.primary}>
             <View style={{ alignItems: 'center' }}>
-              <Text style={{ fontSize: 62, fontWeight: '600', color: '#EFF3F0', letterSpacing: -0.035 }}>{count}</Text>
-              <Text style={{ fontSize: 15, fontWeight: '500', color: 'rgba(239,243,240,0.5)', marginTop: 8 }}>/ {target}</Text>
-              <Text style={{ fontSize: 13, color: 'rgba(239,243,240,0.42)', marginTop: 14 }}>{remaining} remaining</Text>
+              <Text style={{ fontSize: 62, fontWeight: '600', color: colors.inkOnPrimary, letterSpacing: -0.035 }}>{count}</Text>
+              <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkOnPrimary, opacity: 0.55, marginTop: 8 }}>/ {target}</Text>
+              <Text style={{ fontSize: 13, color: colors.inkOnPrimary, opacity: 0.45, marginTop: 14 }}>{remaining} remaining</Text>
             </View>
           </ProgressRing>
-          <Text style={{ fontSize: 17, fontWeight: '500', color: 'rgba(239,243,240,0.85)', marginTop: 30 }}>Stay focused.</Text>
+          <Text style={{ fontSize: 17, fontWeight: '500', color: colors.inkOnPrimary, opacity: 0.85, marginTop: 30 }}>Stay focused.</Text>
           <PressableScale
             onPress={onTap}
             accessibilityRole="button"
             scaleTo={0.985}
-            style={{ marginTop: 20, borderWidth: 1, borderColor: 'rgba(239,243,240,0.18)', backgroundColor: 'rgba(239,243,240,0.07)', minHeight: 56, paddingHorizontal: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}
+            style={{ marginTop: 20, borderWidth: 1, borderColor: colors.inkMuted, backgroundColor: colors.isha.ink, minHeight: 56, paddingHorizontal: 46, borderRadius: radii.button, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text style={{ fontSize: 16, fontWeight: '600', color: '#EFF3F0' }}>Continue Dhikr</Text>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: colors.inkOnPrimary }}>Continue Dhikr</Text>
           </PressableScale>
-          <Text style={{ fontSize: 12.5, lineHeight: 20, color: 'rgba(239,243,240,0.4)', marginTop: 22, textAlign: 'center', maxWidth: 250 }}>Calls and messages still reach you. Everything else waits.</Text>
+          <Text style={{ fontSize: 12.5, lineHeight: 20, color: colors.inkOnPrimary, opacity: 0.45, marginTop: 22, textAlign: 'center', maxWidth: 250 }}>Calls and messages still reach you. Everything else waits.</Text>
 
           {isLocked && BLOCKING_SUPPORTED && !blockingActive && blockedCount > 0 && (
-            <Text style={{ fontSize: 12, lineHeight: 18, color: '#E0B166', marginTop: 16, textAlign: 'center', maxWidth: 260 }}>
+            <Text style={{ fontSize: 12, lineHeight: 18, color: colors.gold, marginTop: 16, textAlign: 'center', maxWidth: 260 }}>
               Apps aren’t currently blocked{unlocking ? '…' : '.'}
             </Text>
           )}
@@ -268,11 +269,11 @@ export default function FocusActiveScreen() {
             scaleTo={1}
             style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#E0B166' }}>{unlocking ? 'Unlocking…' : 'Emergency unlock'}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.gold }}>{unlocking ? 'Unlocking…' : 'Emergency unlock'}</Text>
           </PressableScale>
         )}
         <PressableScale onPress={() => setConfirmEnd(true)} disabled={loading} accessibilityRole="button" scaleTo={1} style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 14, fontWeight: '500', color: 'rgba(239,243,240,0.5)' }}>End focus</Text>
+          <Text style={{ fontSize: 14, fontWeight: '500', color: colors.inkOnPrimary, opacity: 0.55 }}>End focus</Text>
         </PressableScale>
       </View>
 
