@@ -172,7 +172,7 @@ export default function WakeAlarmSettingsScreen() {
                       accessibilityRole="switch"
                       accessibilityState={{ checked: config.enabled, disabled: isBusy }}
                       accessibilityLabel={`${name} wake-verification alarm`}
-                      style={{ position: 'absolute', inset: 0 }}
+                      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
                     />
                   </View>
                 );
