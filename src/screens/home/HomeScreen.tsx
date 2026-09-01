@@ -160,7 +160,8 @@ export default function HomeScreen() {
   const handleTilePress = useCallback(
     async (name: PrayerName) => {
       if (!user || busy.has(name)) return;
-      if (classification?.[name] === 'upcoming') return;
+      // Only the current prayer window is tappable — past is gone, upcoming is not yet
+      if (classification?.[name] !== 'current') return;
       const prevVal = logged?.[name] ?? false;
       setLogged((l) => (l ? { ...l, [name]: !prevVal } : l));
       setBusy((b) => new Set(b).add(name));
@@ -232,6 +233,7 @@ export default function HomeScreen() {
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
+                nestedScrollEnabled
                 onMomentumScrollEnd={(e) => {
                   const idx = Math.round(e.nativeEvent.contentOffset.x / SLIDER_W);
                   setHadithIndex(idx);
@@ -345,14 +347,20 @@ export default function HomeScreen() {
             <View style={{ flexDirection: 'row', gap: 6 }}>
               {dailyPrayers.map((name) => {
                 const done = !!logged[name];
-                const current = classification?.[name] === 'current';
-                const upcoming = classification?.[name] === 'upcoming';
+                const cls = classification?.[name]; // 'done' | 'current' | 'upcoming' | undefined
+                const current = cls === 'current';
+                const isDone = cls === 'done';
+                const upcoming = cls === 'upcoming';
+                // Only the current prayer window is interactive — done is gone, upcoming is not yet
+                const isDisabled = busy.has(name) || !current;
+                const opacity = busy.has(name) ? 0.6 : isDone ? 0.38 : upcoming ? 0.52 : 1;
                 const Icon = TILE_ICON[name] ?? SunIcon;
                 return (
                   <PressableScale
                     key={name}
                     onPress={() => handleTilePress(name)}
-                    disabled={busy.has(name) || (upcoming && !done)}
+                    disabled={isDisabled}
+                    scaleTo={current ? 0.94 : 1}
                     style={{
                       flex: 1,
                       minWidth: 0,
@@ -362,7 +370,7 @@ export default function HomeScreen() {
                       backgroundColor: PURPLE_LT,
                       alignItems: 'center',
                       gap: 5,
-                      opacity: busy.has(name) ? 0.6 : upcoming && !done ? 0.6 : 1,
+                      opacity,
                     }}
                   >
                     <Icon size={18} color={done ? PURPLE : current ? PURPLE_MID : '#8A93A0'} />
