@@ -14,6 +14,7 @@ import ProgressScreen from '../screens/adhkar/ProgressScreen';
 import CommunityScreen from '../screens/community/CommunityScreen';
 import CommunityGoalScreen from '../screens/community/CommunityGoalScreen';
 import CirclesScreen from '../screens/community/CirclesScreen';
+import CircleDetailScreen from '../screens/community/CircleDetailScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import PrivacyScreen from '../screens/profile/PrivacyScreen';
 import QuranScreen from '../screens/quran/QuranScreen';
@@ -56,6 +57,7 @@ function CommunityTabStack() {
       <CommunityStack.Screen name="Community" component={CommunityScreen} />
       <CommunityStack.Screen name="CommunityGoal2" component={CommunityGoalScreen} />
       <CommunityStack.Screen name="Circles2" component={CirclesScreen} />
+      <CommunityStack.Screen name="CircleDetail" component={CircleDetailScreen} />
     </CommunityStack.Navigator>
   );
 }

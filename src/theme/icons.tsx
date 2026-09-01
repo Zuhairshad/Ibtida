@@ -211,3 +211,16 @@ export const NavCompassIcon = ({ size = 104, angleDeg, color = '#2A63B8' }: Icon
 );
 
 export const CalendarIcon = HomeIcon;
+
+export const ShareIcon = ({ size = 18, color = '#2A63B8' }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.6 13.5l6.8 3.9M15.4 6.6L8.6 10.5" stroke={color} strokeWidth={1.7} strokeLinecap="round" />
+  </Svg>
+);
+
+export const XCircleIcon = ({ size = 32, color = '#1B2430' }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+    <Path d="M16 0C7.163 0 0 7.163 0 16s7.163 16 16 16 16-7.163 16-16S24.837 0 16 0z" fill={color} />
+    <Path d="M11 11l10 10M21 11L11 21" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
+  </Svg>
+);

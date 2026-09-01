@@ -51,6 +51,7 @@ export type CommunityStackParamList = {
   Community: undefined;
   CommunityGoal2: { id: number };
   Circles2: undefined;
+  CircleDetail: { circleId: string };
 };
 
 export type QuranStackParamList = {

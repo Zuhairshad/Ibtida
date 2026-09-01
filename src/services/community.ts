@@ -235,3 +235,159 @@ export async function listGoalParticipants(goalId: string): Promise<{ userId: st
   if (error) throw error;
   return (data ?? []).map((r: { user_id: string; progress: number | string }) => ({ userId: r.user_id, progress: Number(r.progress) }));
 }
+
+// ---------------------------------------------------------------------------
+// Circle detail, invite, member management, circle-scoped goals
+// ---------------------------------------------------------------------------
+
+export type CircleMemberProfile = {
+  userId: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  role: CircleRole;
+  joinedAt: string;
+};
+
+export type CircleDetail = {
+  id: string;
+  name: string;
+  privacy: CirclePrivacy;
+  inviteCode: string;
+  createdBy: string;
+  members: CircleMemberProfile[];
+};
+
+export async function getCircleDetail(circleId: string): Promise<CircleDetail> {
+  const [detailRes, profilesRes] = await Promise.all([
+    supabase
+      .from('community_circles')
+      .select('id, name, privacy, invite_code, created_by')
+      .eq('id', circleId)
+      .single(),
+    supabase.rpc('get_circle_member_profiles', { p_circle_id: circleId }),
+  ]);
+  if (detailRes.error) throw detailRes.error;
+  const d = detailRes.data as { id: string; name: string; privacy: string; invite_code: string; created_by: string };
+  const profiles = (profilesRes.data ?? []) as {
+    user_id: string; display_name: string | null; avatar_url: string | null; role: string; joined_at: string;
+  }[];
+  return {
+    id: d.id,
+    name: d.name,
+    privacy: d.privacy as CirclePrivacy,
+    inviteCode: d.invite_code,
+    createdBy: d.created_by,
+    members: profiles.map((p) => ({
+      userId: p.user_id,
+      displayName: p.display_name,
+      avatarUrl: p.avatar_url,
+      role: p.role as CircleRole,
+      joinedAt: p.joined_at,
+    })),
+  };
+}
+
+export async function joinCircleByCode(userId: string, code: string): Promise<{ circleId: string; circleName: string }> {
+  const { data, error } = await supabase.rpc('join_circle_by_code', {
+    p_code: code.trim().replace(/.*\/join\//, ''),
+    p_user_id: userId,
+  });
+  if (error) throw error;
+  const d = data as { circleId: string; circleName: string };
+  return { circleId: d.circleId, circleName: d.circleName };
+}
+
+export async function kickMember(circleId: string, targetUserId: string): Promise<void> {
+  const { error } = await supabase
+    .from('circle_members')
+    .delete()
+    .eq('circle_id', circleId)
+    .eq('user_id', targetUserId);
+  if (error) throw error;
+}
+
+export async function deleteMembership(circleId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('circle_members')
+    .delete()
+    .eq('circle_id', circleId)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function deleteCircle(circleId: string): Promise<void> {
+  const { error } = await supabase
+    .from('community_circles')
+    .delete()
+    .eq('id', circleId);
+  if (error) throw error;
+}
+
+export type CircleGoal = {
+  id: string;
+  name: string;
+  target: number;
+  unit: string | null;
+  totalProgress: number;
+  participantCount: number;
+};
+
+export async function listCircleGoals(circleId: string): Promise<CircleGoal[]> {
+  const { data, error } = await supabase
+    .from('community_goals')
+    .select('id, name, target, unit, community_goal_members(progress)')
+    .eq('circle_id', circleId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((g: { id: string; name: string; target: number; unit: string | null; community_goal_members: { progress: number }[] | null }) => {
+    const members = g.community_goal_members ?? [];
+    return {
+      id: g.id,
+      name: g.name,
+      target: g.target,
+      unit: g.unit,
+      totalProgress: members.reduce((s, m) => s + m.progress, 0),
+      participantCount: members.length,
+    };
+  });
+}
+
+export async function createCircleGoal(
+  circleId: string,
+  userId: string,
+  name: string,
+  target: number,
+  unit?: string,
+): Promise<{ id: string }> {
+  const { data, error } = await supabase
+    .from('community_goals')
+    .insert({ circle_id: circleId, created_by: userId, name, target, unit: unit || null })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return { id: (data as { id: string }).id };
+}
+
+export async function regenerateInviteCode(circleId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('regenerate_circle_invite', { p_circle_id: circleId });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function updateCircle(circleId: string, name: string, privacy: CirclePrivacy): Promise<void> {
+  const { error } = await supabase
+    .from('community_circles')
+    .update({ name, privacy })
+    .eq('id', circleId);
+  if (error) throw error;
+}
+
+export async function contributeToCircleGoal(goalId: string, userId: string, amount: number): Promise<number> {
+  const { data, error } = await supabase.rpc('contribute_to_goal', {
+    p_goal_id: goalId,
+    p_user_id: userId,
+    p_amount: amount,
+  });
+  if (error) throw error;
+  return Number(data);
+}

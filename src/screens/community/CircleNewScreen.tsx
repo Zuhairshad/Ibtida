@@ -3,7 +3,7 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '../../state/AuthContext';
-import { createCircle, CirclePrivacy } from '../../services/community';
+import { createCircle, createCircleGoal, CirclePrivacy } from '../../services/community';
 import { nav } from '../../navigation/navigate';
 import { colors } from '../../theme/tokens';
 import { ScreenFade } from '../../components/ScreenFade';
@@ -20,7 +20,13 @@ const PRIVACY_LEVELS = [
   { label: 'Friends', sub: 'People you already share circles with' },
 ];
 
-const GOAL_TEMPLATES = ['Fajr together this month', 'One juz a week', '100 durood a day', 'Morning adhkar streak'];
+const GOAL_TEMPLATES = [
+  { label: 'Fajr together this month', target: 30, unit: 'prayers' },
+  { label: 'One juz a week', target: 4, unit: 'juz' },
+  { label: '100 durood a day', target: 3000, unit: 'recitations' },
+  { label: 'Morning adhkar streak', target: 30, unit: 'sessions' },
+  { label: 'None for now', target: 0, unit: '' },
+];
 
 export default function CircleNewScreen() {
   const { user } = useAuth();
@@ -37,8 +43,12 @@ export default function CircleNewScreen() {
     if (!canCreate || creating || !user) return;
     setCreating(true);
     try {
-      await createCircle(user.id, name.trim(), PRIVACY_LEVELS[privacy].label as CirclePrivacy);
-      nav.circles();
+      const result = await createCircle(user.id, name.trim(), PRIVACY_LEVELS[privacy].label as CirclePrivacy);
+      const template = GOAL_TEMPLATES[goal];
+      if (template.target > 0) {
+        await createCircleGoal(result.id, user.id, template.label, template.target, template.unit || undefined);
+      }
+      nav.circleDetail(result.id);
     } catch {
       setToast('Could not create your circle — try again.');
       setCreating(false);
@@ -116,14 +126,14 @@ export default function CircleNewScreen() {
                 const on = goal === i;
                 return (
                   <PressableScale
-                    key={g}
+                    key={g.label}
                     onPress={() => setGoal(i)}
                     scaleTo={0.94}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: on }}
                     style={{ backgroundColor: on ? colors.primary : colors.bgTint, paddingVertical: 10, paddingHorizontal: 13, borderRadius: 12, minHeight: 44, justifyContent: 'center' }}
                   >
-                    <Text style={{ fontSize: 12.5, fontWeight: on ? '600' : '500', color: on ? '#FFFFFF' : colors.inkMuted }}>{g}</Text>
+                    <Text style={{ fontSize: 12.5, fontWeight: on ? '600' : '500', color: on ? '#FFFFFF' : colors.inkMuted }}>{g.label}</Text>
                   </PressableScale>
                 );
               })}

@@ -38,6 +38,7 @@ export const nav = {
   community: () => go('Tabs', { screen: 'CommunityTab', params: { screen: 'Community' } }),
   communityGoal: (id = 0) => go('Tabs', { screen: 'CommunityTab', params: { screen: 'CommunityGoal2', params: { id } } }),
   circles: () => go('Tabs', { screen: 'CommunityTab', params: { screen: 'Circles2' } }),
+  circleDetail: (circleId: string) => go('Tabs', { screen: 'CommunityTab', params: { screen: 'CircleDetail', params: { circleId } } }),
   quran: () => go('Tabs', { screen: 'DashboardTab', params: { screen: 'Quran' } }),
   quranReader: () => go('QuranReader'),
   focusSetup: () => go('FocusSetup'),

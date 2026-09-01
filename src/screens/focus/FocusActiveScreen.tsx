@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, PanResponder, Platform, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RouteProp, useFocusEffect, useRoute } from '@react-navigation/native';
+import Svg, { Circle } from 'react-native-svg';
+import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '../../state/AuthContext';
 import { RootStackParamList } from '../../navigation/types';
@@ -19,23 +21,56 @@ import { isAppBlockingSupported, startBlocking, stopBlocking, addBlockingEventLi
 import { nav } from '../../navigation/navigate';
 import { ScreenFade } from '../../components/ScreenFade';
 import PressableScale from '../../components/PressableScale';
-import ProgressRing from '../../components/ProgressRing';
 import ConfirmSheet from '../../components/ConfirmSheet';
 import { SkeletonBlock } from '../../components/Skeleton';
 import Toast from '../../components/Toast';
 
 const CURRENT_PLATFORM: AppPlatform = Platform.OS === 'ios' ? 'ios' : 'android';
-// Fixed for the process lifetime — see the same constant's comment in
-// FocusSetupScreen.tsx.
 const BLOCKING_SUPPORTED = isAppBlockingSupported();
 
-// Dark, minimal, hard-to-accidentally-exit focus state — the "Ibadah Lock"
-// distraction-blocking feature. Calls/messages explicitly remain available.
-//
-// A session is "locked" (app-blocked) when route.params.goalId is set (a
-// fresh start from FocusSetupScreen's goal picker) or when the session being
-// resumed already has a goal_id (see getActiveLockedSession) — a plain
-// unlocked session has neither and behaves exactly as before this feature.
+// Bead ring geometry — matches TasbeehScreen
+const TOTAL_BEADS = 33;
+const ORBIT_RADIUS = 112;
+const BEAD_R = 9;
+const SVG_SIZE = (ORBIT_RADIUS + BEAD_R) * 2 + 20;
+
+function beadPosition(i: number) {
+  const angle = (i / TOTAL_BEADS) * 2 * Math.PI - Math.PI / 2;
+  return {
+    cx: SVG_SIZE / 2 + ORBIT_RADIUS * Math.cos(angle),
+    cy: SVG_SIZE / 2 + ORBIT_RADIUS * Math.sin(angle),
+  };
+}
+
+function BeadRing({ count, target }: { count: number; target: number }) {
+  const filledBeads = count % TOTAL_BEADS;
+  const done = count >= target;
+  return (
+    <Svg width={SVG_SIZE} height={SVG_SIZE}>
+      {Array.from({ length: TOTAL_BEADS }, (_, i) => {
+        const { cx, cy } = beadPosition(i);
+        const filled = done || i < filledBeads;
+        const isCurrent = !done && i === filledBeads;
+        return (
+          <Circle
+            key={i}
+            cx={cx}
+            cy={cy}
+            r={isCurrent ? BEAD_R + 2.5 : BEAD_R}
+            fill={
+              filled
+                ? '#C9A96E'
+                : isCurrent
+                  ? 'rgba(201,169,110,0.45)'
+                  : 'rgba(239,243,240,0.1)'
+            }
+          />
+        );
+      })}
+    </Svg>
+  );
+}
+
 export default function FocusActiveScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -49,28 +84,24 @@ export default function FocusActiveScreen() {
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [confirmEmergency, setConfirmEmergency] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
-  // Whether native app-blocking is actually enforcing right now for this
-  // session — distinct from `goalId` being set, since arming can fail, the
-  // platform may not support it yet, or an emergency unlock may have lifted
-  // it already. Never shown as "on" unless it really is.
   const [blockingActive, setBlockingActive] = useState(false);
   const [blockedCount, setBlockedCount] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
 
-  // Starts native enforcement for this platform's persisted blocked_apps
-  // list. Best-effort: any failure (no native module, native error) just
-  // leaves blockingActive false rather than throwing into the caller — a
-  // locked session with blocking that failed to arm is still a valid state,
-  // just one this screen must show honestly (see the render below).
+  // Pulse animation for current bead
+  const pulseScale = useRef(new Animated.Value(1)).current;
+
+  const triggerPulse = useCallback(() => {
+    pulseScale.setValue(1.35);
+    Animated.spring(pulseScale, { toValue: 1, friction: 3, tension: 180, useNativeDriver: true }).start();
+  }, [pulseScale]);
+
   const armBlocking = useCallback(async (userId: string) => {
     try {
       const apps = await listBlockedApps(userId);
       const ids = apps.filter((a) => a.platform === CURRENT_PLATFORM).map((a) => a.appIdentifier);
       setBlockedCount(ids.length);
-      if (ids.length === 0) {
-        setBlockingActive(false);
-        return;
-      }
+      if (ids.length === 0) { setBlockingActive(false); return; }
       await startBlocking(ids);
       setBlockingActive(true);
     } catch {
@@ -85,9 +116,6 @@ export default function FocusActiveScreen() {
       setLoading(true);
       (async () => {
         try {
-          // getActiveLockedSession is a strict superset of focus.ts's
-          // getActiveFocusSession (same row, plus goal_id) — resuming
-          // through it covers both locked and plain in-progress sessions.
           const existing = await getActiveLockedSession(user.id);
           if (existing) {
             if (!active) return;
@@ -98,7 +126,6 @@ export default function FocusActiveScreen() {
             if (existing.goalId && BLOCKING_SUPPORTED) await armBlocking(user.id);
             return;
           }
-
           if (route.params?.goalId) {
             const created = await startGoalLockedSession(user.id, route.params.goalId, route.params.target);
             if (!active) return;
@@ -109,11 +136,6 @@ export default function FocusActiveScreen() {
             if (BLOCKING_SUPPORTED) await armBlocking(user.id);
             return;
           }
-
-          // Plain (unlocked) session — no dedicated "focus goal" target
-          // exists, so seed it from the user's most recent Adhkar goal,
-          // falling back to 100 (AppState's old `newTarget` field is dead:
-          // GoalNewScreen keeps its target as local form state only).
           const goals = await listGoals(user.id);
           const activeGoal = goals.find((g) => !g.completedAt) ?? goals[0];
           const seedTarget = activeGoal?.target ?? 100;
@@ -128,16 +150,10 @@ export default function FocusActiveScreen() {
           if (active) setLoading(false);
         }
       })();
-      return () => {
-        active = false;
-      };
+      return () => { active = false; };
     }, [user, route.params, armBlocking])
   );
 
-  // Surfaces a gentle in-app notice if the app happens to be foregrounded
-  // when the native side reports a blocked-app open attempt, and reflects
-  // blocking having been stopped from the native side itself (e.g. the user
-  // revoked Screen Time authorization out from under the app).
   useEffect(() => {
     if (!goalId) return;
     const sub = addBlockingEventListener((event) => {
@@ -150,13 +166,13 @@ export default function FocusActiveScreen() {
     return () => sub.remove();
   }, [goalId]);
 
-  const remaining = Math.max(target - count, 0);
+  // Keep a ref to the latest onCount for use inside PanResponder
+  const onCountRef = useRef<() => void>(() => {});
 
-  // Reaching the goal ends the session in the celebration moment rather than
-  // silently capping the counter — and, for a locked session, marks the
-  // linked adhkar goal complete and lifts app-blocking.
-  const onTap = () => {
+  const onCount = useCallback(() => {
     if (!sessionId) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    triggerPulse();
     const optimistic = Math.min(count + 1, target);
     setCount(optimistic);
     if (optimistic >= target) {
@@ -172,7 +188,33 @@ export default function FocusActiveScreen() {
     tapFocusSession(sessionId)
       .then((s) => setCount(s.count))
       .catch(() => setToast('Could not save your progress.'));
-  };
+  }, [sessionId, count, target, goalId, blockingActive, triggerPulse]);
+
+  useEffect(() => { onCountRef.current = onCount; }, [onCount]);
+
+  // PanResponder: swipe up/right or tap → count one bead
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 5 || Math.abs(gs.dx) > 5,
+      onPanResponderRelease: (_, gs) => {
+        // Accept swipe in any direction, or a simple tap (no movement)
+        const moved = Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4;
+        const isUpSwipe = gs.dy < -8;
+        const isRightSwipe = gs.dx > 8;
+        if (!moved || isUpSwipe || isRightSwipe) {
+          onCountRef.current();
+        }
+      },
+    })
+  ).current;
+
+  const remaining = Math.max(target - count, 0);
+  const reps = Math.floor(count / TOTAL_BEADS);
+
+  // Position of the current bead for the pulsing overlay
+  const currentBeadIdx = count % TOTAL_BEADS;
+  const { cx: beadCx, cy: beadCy } = beadPosition(currentBeadIdx);
 
   const onEndFocus = () => {
     setConfirmEnd(false);
@@ -184,20 +226,11 @@ export default function FocusActiveScreen() {
     nav.home();
   };
 
-  // The "break glass" safety valve: lifts blocking immediately and logs the
-  // use to the caller's own, own-eyes-only history — never ends the
-  // session, so this reads as a real release valve rather than a shortcut
-  // to quit early.
   const onEmergencyUnlock = async () => {
     setConfirmEmergency(false);
     if (!user || !sessionId) return;
     setUnlocking(true);
-    try {
-      await stopBlocking();
-    } catch {
-      // Best-effort — still reflect apps as unblocked and log the override
-      // even if the native call itself failed (e.g. already stopped).
-    }
+    try { await stopBlocking(); } catch {}
     setBlockingActive(false);
     try {
       await logEmergencyOverride(user.id, sessionId);
@@ -220,45 +253,74 @@ export default function FocusActiveScreen() {
 
   return (
     <ScreenFade duration={400} style={{ backgroundColor: '#1B2621' }}>
+      {/* Header */}
       <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: 'rgba(239,243,240,0.45)' }}>
           {isLocked ? 'Ibadah Lock' : 'Ibadah Focus'}
         </Text>
-        {!!lockStatusLabel && <Text style={{ fontSize: 12.5, fontWeight: '500', color: 'rgba(239,243,240,0.45)' }}>{lockStatusLabel}</Text>}
+        {!!lockStatusLabel && (
+          <Text style={{ fontSize: 12.5, fontWeight: '500', color: 'rgba(239,243,240,0.45)' }}>{lockStatusLabel}</Text>
+        )}
       </View>
 
+      {/* Main content */}
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <SkeletonBlock width={236} height={236} radius={118} style={{ backgroundColor: 'rgba(239,243,240,0.08)' }} />
+          <SkeletonBlock width={SVG_SIZE} height={SVG_SIZE} radius={SVG_SIZE / 2} style={{ backgroundColor: 'rgba(239,243,240,0.08)' }} />
         </View>
       ) : (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 }}>
-          <ProgressRing size={236} strokeWidth={4} progress={target > 0 ? count / target : 0} trackColor="rgba(239,243,240,0.1)" color="#3D73C9">
-            <View style={{ alignItems: 'center' }}>
-              <Text style={{ fontSize: 62, fontWeight: '600', color: '#EFF3F0', letterSpacing: -0.035 }}>{count}</Text>
-              <Text style={{ fontSize: 15, fontWeight: '500', color: 'rgba(239,243,240,0.5)', marginTop: 8 }}>/ {target}</Text>
-              <Text style={{ fontSize: 13, color: 'rgba(239,243,240,0.42)', marginTop: 14 }}>{remaining} remaining</Text>
-            </View>
-          </ProgressRing>
-          <Text style={{ fontSize: 17, fontWeight: '500', color: 'rgba(239,243,240,0.85)', marginTop: 30 }}>Stay focused.</Text>
-          <PressableScale
-            onPress={onTap}
-            accessibilityRole="button"
-            scaleTo={0.985}
-            style={{ marginTop: 20, borderWidth: 1, borderColor: 'rgba(239,243,240,0.18)', backgroundColor: 'rgba(239,243,240,0.07)', minHeight: 56, paddingHorizontal: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          {/* Bead ring — tap or swipe up/right to count */}
+          <View
+            {...panResponder.panHandlers}
+            style={{ width: SVG_SIZE, height: SVG_SIZE, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text style={{ fontSize: 16, fontWeight: '600', color: '#EFF3F0' }}>Continue Dhikr</Text>
-          </PressableScale>
-          <Text style={{ fontSize: 12.5, lineHeight: 20, color: 'rgba(239,243,240,0.4)', marginTop: 22, textAlign: 'center', maxWidth: 250 }}>Calls and messages still reach you. Everything else waits.</Text>
+            <BeadRing count={count} target={target} />
+
+            {/* Pulsing current-bead overlay */}
+            {count < target && (
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  left: beadCx - (BEAD_R + 2.5),
+                  top: beadCy - (BEAD_R + 2.5),
+                  width: (BEAD_R + 2.5) * 2,
+                  height: (BEAD_R + 2.5) * 2,
+                  borderRadius: BEAD_R + 2.5,
+                  backgroundColor: '#C9A96E',
+                  transform: [{ scale: pulseScale }],
+                }}
+              />
+            )}
+
+            {/* Center display */}
+            <View style={{ position: 'absolute', alignItems: 'center', pointerEvents: 'none' }}>
+              <Text style={{ fontSize: 56, fontWeight: '700', color: '#EFF3F0', letterSpacing: -0.04 }}>{count}</Text>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: 'rgba(239,243,240,0.45)', marginTop: 4 }}>/ {target}</Text>
+              {reps > 0 && (
+                <Text style={{ fontSize: 12, color: '#C9A96E', marginTop: 8, fontWeight: '600' }}>{reps} × 33</Text>
+              )}
+            </View>
+          </View>
+
+          {/* Remaining + hint */}
+          <Text style={{ fontSize: 13.5, color: 'rgba(239,243,240,0.42)', marginTop: 18 }}>
+            {remaining} remaining
+          </Text>
+          <Text style={{ fontSize: 13, color: 'rgba(239,243,240,0.28)', marginTop: 7 }}>
+            Swipe up or tap to count
+          </Text>
 
           {isLocked && BLOCKING_SUPPORTED && !blockingActive && blockedCount > 0 && (
-            <Text style={{ fontSize: 12, lineHeight: 18, color: '#E0B166', marginTop: 16, textAlign: 'center', maxWidth: 260 }}>
-              Apps aren’t currently blocked{unlocking ? '…' : '.'}
+            <Text style={{ fontSize: 12, lineHeight: 18, color: '#E0B166', marginTop: 18, textAlign: 'center', maxWidth: 260 }}>
+              Apps aren't currently blocked{unlocking ? '…' : '.'}
             </Text>
           )}
         </View>
       )}
 
+      {/* Footer controls */}
       <View style={{ paddingHorizontal: 26, paddingBottom: insets.bottom + 20, gap: 4 }}>
         {isLocked && blockingActive && (
           <PressableScale
@@ -268,15 +330,22 @@ export default function FocusActiveScreen() {
             scaleTo={1}
             style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#E0B166' }}>{unlocking ? 'Unlocking…' : 'Emergency unlock'}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#E0B166' }}>
+              {unlocking ? 'Unlocking…' : 'Emergency unlock'}
+            </Text>
           </PressableScale>
         )}
-        <PressableScale onPress={() => setConfirmEnd(true)} disabled={loading} accessibilityRole="button" scaleTo={1} style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
+        <PressableScale
+          onPress={() => setConfirmEnd(true)}
+          disabled={loading}
+          accessibilityRole="button"
+          scaleTo={1}
+          style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
+        >
           <Text style={{ fontSize: 14, fontWeight: '500', color: 'rgba(239,243,240,0.5)' }}>End focus</Text>
         </PressableScale>
       </View>
 
-      {/* Early-exit friction: leaving before the goal is a deliberate choice. */}
       <ConfirmSheet
         visible={confirmEnd}
         title="End focus early?"
@@ -285,10 +354,6 @@ export default function FocusActiveScreen() {
         onConfirm={onEndFocus}
         onCancel={() => setConfirmEnd(false)}
       />
-
-      {/* A real safety valve, not a shortcut to quit: apps unblock instantly,
-          the session keeps running, and the use is recorded to a history
-          only the user themself can ever see. */}
       <ConfirmSheet
         visible={confirmEmergency}
         title="Emergency unlock?"
@@ -297,7 +362,6 @@ export default function FocusActiveScreen() {
         onConfirm={onEmergencyUnlock}
         onCancel={() => setConfirmEmergency(false)}
       />
-
       <Toast message={toast} onDismiss={() => setToast(null)} />
     </ScreenFade>
   );
