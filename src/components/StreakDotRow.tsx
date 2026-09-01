@@ -7,7 +7,7 @@ type Day = { label: string; hit: boolean };
 
 export default function StreakDotRow({ days, dotSize = 22 }: { days: Day[]; dotSize?: number }) {
   return (
-    <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', gap: 4 }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 4, paddingHorizontal: 1 }}>
       {days.map((d, i) => (
         <View key={i} style={{ alignItems: 'center', gap: 7 }}>
           {d.hit ? (

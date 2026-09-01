@@ -452,7 +452,7 @@ export default function HomeScreen() {
               {streak === null ? '—' : streak}
             </Text>
             <Text style={{ fontSize: 11, color: colors.inkSecondary, marginTop: 2, marginBottom: 10 }}>Days</Text>
-            <StreakDotRow days={streakDays} />
+            <StreakDotRow days={streakDays} dotSize={16} />
           </PressableScale>
 
           {/* Community Impact */}
