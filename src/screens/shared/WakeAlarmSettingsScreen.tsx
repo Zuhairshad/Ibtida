@@ -165,15 +165,16 @@ export default function WakeAlarmSettingsScreen() {
                         <ChevronRightIcon size={12} color={colors.primary} />
                       </PressableScale>
                     </View>
-                    <Toggle on={config.enabled} disabled={isBusy} />
                     <PressableScale
                       onPress={() => onToggle(name)}
                       disabled={isBusy}
+                      scaleTo={0.95}
                       accessibilityRole="switch"
                       accessibilityState={{ checked: config.enabled, disabled: isBusy }}
                       accessibilityLabel={`${name} wake-verification alarm`}
-                      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-                    />
+                    >
+                      <Toggle on={config.enabled} disabled={isBusy} />
+                    </PressableScale>
                   </View>
                 );
               })}
