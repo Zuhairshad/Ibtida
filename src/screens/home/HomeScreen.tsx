@@ -381,6 +381,24 @@ export default function HomeScreen() {
           </View>
         </RiseIn>
 
+        {/* ── Wake alarm shortcut ────────────────────────────────────────── */}
+        <RiseIn delay={240} style={{ paddingHorizontal: 20, marginTop: 8 }}>
+          <PressableScale
+            onPress={nav.wakeAlarmSettings}
+            scaleTo={0.985}
+            style={{ borderRadius: 18, backgroundColor: CARD_BG, borderWidth: 1, borderColor: `${PURPLE}12`, flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 16, gap: 12 }}
+          >
+            <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: PURPLE_LT, alignItems: 'center', justifyContent: 'center' }}>
+              <BellIcon size={16} color={PURPLE} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: PURPLE_DK }}>Wake alarm</Text>
+              <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 1 }}>Two-step prayer verification</Text>
+            </View>
+            <ArrowRightIcon size={14} color={colors.inkMuted} />
+          </PressableScale>
+        </RiseIn>
+
         {/* ── Quick actions ──────────────────────────────────────────────── */}
         <RiseIn delay={255} style={{ paddingHorizontal: 20, marginTop: 12, flexDirection: 'row', gap: 10 }}>
           {[

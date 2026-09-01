@@ -32,7 +32,7 @@ const PRAYER_TINTS: Record<PrayerName, { ink: string; tint: string }> = {
 // LIMITATION_COPY below and src/services/wakeAlarmScheduling.ts's file
 // header for the full platform reasoning).
 const LIMITATION_COPY =
-  'This rings once, as a real alert with sound — not a looping alarm. Neither iOS nor Android lets an ordinary app take over the phone like a dedicated alarm clock. Tap the alert, then scan your tag to confirm you’re actually up.';
+  "When it’s time for prayer, your phone rings with a sound alert. Tap it, then scan the QR sticker on your sink to confirm you’re up and making wudu \u2014 then scan the one on your mat after praying.";
 
 export default function WakeAlarmSettingsScreen() {
   const { user } = useAuth();
@@ -161,7 +161,7 @@ export default function WakeAlarmSettingsScreen() {
                         accessibilityRole="button"
                         style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, alignSelf: 'flex-start' }}
                       >
-                        <Text style={{ fontSize: 12, fontWeight: '500', color: colors.primary }}>View my tag</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '500', color: colors.primary }}>Set up tags</Text>
                         <ChevronRightIcon size={12} color={colors.primary} />
                       </PressableScale>
                     </View>
@@ -180,8 +180,7 @@ export default function WakeAlarmSettingsScreen() {
             </View>
 
             <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 12, lineHeight: 18 }}>
-              {Object.values(configs).filter((c) => c.enabled).length} of {PRAYER_NAMES.length} prayers on. Each prints its own QR tag —
-              scanning the wrong prayer’s tag won’t confirm a different one.
+              {Object.values(configs).filter((c) => c.enabled).length} of {PRAYER_NAMES.length} prayers on. Tap "Set up tags" to link your physical QR stickers — each prayer uses its own pair.
             </Text>
           </>
         )}

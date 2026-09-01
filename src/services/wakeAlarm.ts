@@ -179,6 +179,27 @@ export async function regenerateWuduToken(userId: string, prayerName: PrayerName
   return token;
 }
 
+/** Saves the value scanned from a physical QR sticker as that prayer's sink
+ * or mat token. Called from the tag-registration screen — whatever the user's
+ * sticker encodes becomes the stored token; scanning the same sticker during
+ * an alarm then matches. Overwrites any previous value (auto-generated or
+ * prior sticker). */
+export async function saveTagToken(
+  userId: string,
+  prayerName: PrayerName,
+  tag: 'wudu' | 'mat',
+  value: string
+): Promise<void> {
+  await getOrCreateAlarmConfigRow(userId, prayerName);
+  const column = tag === 'wudu' ? 'wudu_token' : 'verification_token';
+  const { error } = await supabase
+    .from('prayer_alarm_settings')
+    .update({ [column]: value })
+    .eq('user_id', userId)
+    .eq('prayer_name', prayerName);
+  if (error) throw error;
+}
+
 // ---------------------------------------------------------------------------
 // wake_verifications — an append-only log of successful wake verifications.
 // ---------------------------------------------------------------------------
