@@ -103,8 +103,12 @@ export default function HomeScreen() {
   );
   const classification = useMemo(
     () => calcSettings ? classifyPrayersForDate(calcSettings.latitude, calcSettings.longitude, calcSettings.calculationMethod, calcSettings.madhab, new Date(), new Date()) : null,
+    // state.secs ticks every second — ensures classification is never stale
+    // across a prayer window boundary (countdown.name is unreliable as a proxy
+    // because with unusual locations its name can stay fixed for hours).
+    // classifyPrayersForDate is fast (<1ms), recomputing every second is fine.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [calcSettings, countdown?.name]
+    [calcSettings, state.secs]
   );
 
   useEffect(() => {
