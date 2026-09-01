@@ -1,7 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Dimensions, Image, ScrollView, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
+
+const HADITH_IMAGES = [
+  require('../../../assets/hadith-01.png'),
+  require('../../../assets/hadith-02.png'),
+  require('../../../assets/hadith-03.png'),
+  require('../../../assets/hadith-04.png'),
+  require('../../../assets/hadith-05.png'),
+];
+const SLIDER_W = Dimensions.get('window').width - 40; // 20px padding each side
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { useFocusEffect } from '@react-navigation/native';
@@ -45,6 +54,8 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
+  const [hadithIndex, setHadithIndex] = useState(0);
+  const hadithScrollRef = useRef<ScrollView>(null);
   const [logged, setLogged] = useState<Record<PrayerName, boolean> | null>(null);
   const [busy, setBusy] = useState<Set<PrayerName>>(new Set());
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -212,47 +223,30 @@ export default function HomeScreen() {
           </View>
         </RiseIn>
 
-        {/* ── Hadith card ───────────────────────────────────────────────── */}
+        {/* ── Hadith image slider ────────────────────────────────────────── */}
         <RiseIn delay={50} style={{ paddingHorizontal: 20, marginTop: 18 }}>
-          <View style={{ borderRadius: 22, overflow: 'hidden', backgroundColor: CARD_BG, borderWidth: 1, borderColor: `${PURPLE}18` }}>
-            <View style={{ paddingHorizontal: 22, paddingTop: 22, paddingBottom: 0 }}>
-              {/* quote mark */}
-              <Text style={{ fontSize: 36, fontWeight: '900', color: PURPLE, lineHeight: 36, marginBottom: 4 }}>"</Text>
-              <Text style={{ fontFamily: 'NotoNaskhArabic_500Medium', fontSize: 22, lineHeight: 44, color: PURPLE_DK, textAlign: 'center', writingDirection: 'rtl' }}>
-                مَنْ دَلَّ عَلَى خَيْرٍ فَلَهُ مِثْلُ أَجْرِ فَاعِلِهِ
-              </Text>
-              <Text style={{ fontSize: 14, lineHeight: 22, color: '#3B4653', textAlign: 'center', marginTop: 14, paddingHorizontal: 4 }}>
-                {'The Prophet ﷺ said: "Whoever guides someone to goodness will have a reward similar to the one who acts upon it."'}
-              </Text>
-              <Text style={{ fontSize: 11.5, color: colors.inkSecondary, textAlign: 'center', marginTop: 10 }}>
-                (Sahih Muslim, Book of Leadership, Hadith 1893)
-              </Text>
-            </View>
-            {/* Mosque silhouette gradient footer */}
-            <LinearGradient
-              colors={['transparent', 'rgba(200,190,255,0.35)', 'rgba(230,180,200,0.55)']}
-              style={{ height: 72, marginTop: 12 }}
+          <View style={{ borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: `${PURPLE}18` }}>
+            <ScrollView
+              ref={hadithScrollRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const idx = Math.round(e.nativeEvent.contentOffset.x / SLIDER_W);
+                setHadithIndex(idx);
+              }}
             >
-              {/* stylised mosque outline */}
-              <Svg width="100%" height={72} viewBox="0 0 375 72" preserveAspectRatio="xMidYMax meet">
-                <Path
-                  d="M0 72 L0 45 Q30 30 45 45 L45 40 Q55 20 65 40 L65 35 Q75 10 85 35 L85 40 Q95 20 105 40 L105 45 Q120 30 135 45 L135 72 Z"
-                  fill="rgba(120,100,200,0.18)"
+              {HADITH_IMAGES.map((src, i) => (
+                <Image
+                  key={i}
+                  source={src}
+                  style={{ width: SLIDER_W, height: 200, resizeMode: 'cover' }}
                 />
-                <Path
-                  d="M180 72 L180 38 Q195 18 210 38 L210 33 Q220 10 230 33 L230 38 Q245 18 260 38 L260 72 Z"
-                  fill="rgba(120,100,200,0.22)"
-                />
-                <Path
-                  d="M290 72 L290 48 Q310 28 330 48 L330 44 Q340 22 350 44 L350 48 Q362 32 375 48 L375 72 Z"
-                  fill="rgba(120,100,200,0.15)"
-                />
-              </Svg>
-            </LinearGradient>
-            {/* pagination dots */}
-            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 5, paddingBottom: 14 }}>
-              {[0,1,2,3].map((i) => (
-                <View key={i} style={{ width: i === 0 ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: i === 0 ? PURPLE : `${PURPLE}40` }} />
+              ))}
+            </ScrollView>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 5, paddingVertical: 12, backgroundColor: CARD_BG }}>
+              {HADITH_IMAGES.map((_, i) => (
+                <View key={i} style={{ width: i === hadithIndex ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: i === hadithIndex ? PURPLE : `${PURPLE}40` }} />
               ))}
             </View>
           </View>
