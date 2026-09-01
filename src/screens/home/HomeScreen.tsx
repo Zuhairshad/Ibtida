@@ -226,28 +226,39 @@ export default function HomeScreen() {
         {/* ── Hadith image slider ────────────────────────────────────────── */}
         <RiseIn delay={50} style={{ paddingHorizontal: 20, marginTop: 18 }}>
           <View style={{ borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: `${PURPLE}18` }}>
-            <ScrollView
-              ref={hadithScrollRef}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={(e) => {
-                const idx = Math.round(e.nativeEvent.contentOffset.x / SLIDER_W);
-                setHadithIndex(idx);
-              }}
-            >
-              {HADITH_IMAGES.map((src, i) => (
-                <Image
-                  key={i}
-                  source={src}
-                  style={{ width: SLIDER_W, height: 200, resizeMode: 'cover' }}
-                />
-              ))}
-            </ScrollView>
-            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 5, paddingVertical: 12, backgroundColor: CARD_BG }}>
-              {HADITH_IMAGES.map((_, i) => (
-                <View key={i} style={{ width: i === hadithIndex ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: i === hadithIndex ? PURPLE : `${PURPLE}40` }} />
-              ))}
+            <View>
+              <ScrollView
+                ref={hadithScrollRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={(e) => {
+                  const idx = Math.round(e.nativeEvent.contentOffset.x / SLIDER_W);
+                  setHadithIndex(idx);
+                }}
+              >
+                {HADITH_IMAGES.map((src, i) => (
+                  <Image
+                    key={i}
+                    source={src}
+                    style={{ width: SLIDER_W, height: 230, resizeMode: 'cover' }}
+                  />
+                ))}
+              </ScrollView>
+              {/* Dots overlaid on image — no white bar */}
+              <View style={{ position: 'absolute', bottom: 12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
+                {HADITH_IMAGES.map((_, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      width: i === hadithIndex ? 20 : 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: i === hadithIndex ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.38)',
+                    }}
+                  />
+                ))}
+              </View>
             </View>
           </View>
         </RiseIn>
