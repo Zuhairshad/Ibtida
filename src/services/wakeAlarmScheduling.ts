@@ -66,13 +66,14 @@ export const WAKE_ALARM_SCHEDULE_DAYS = 10;
 const ANDROID_CHANNEL_ID = 'wake-alarm';
 
 /** Carried in the notification's `data` payload so App.tsx's response
- * listener knows which prayer/day to open WakeScanScreen against, without
- * having to re-derive "today's" prayer from scratch (the user may tap the
- * notification well after it fired). */
+ * listener knows which prayer/day and which stage to open WakeScanScreen
+ * against, without having to re-derive "today's" prayer from scratch (the
+ * user may tap the notification well after it fired). */
 export type WakeAlarmNotificationData = {
   kind: 'wake-alarm';
   prayerName: PrayerName;
   alarmDate: string; // YYYY-MM-DD, see services/prayers.ts's toISODate
+  stage: 'wudu' | 'mat';
 };
 
 export function isWakeAlarmNotificationData(data: unknown): data is WakeAlarmNotificationData {
@@ -81,7 +82,8 @@ export function isWakeAlarmNotificationData(data: unknown): data is WakeAlarmNot
     typeof data === 'object' &&
     (data as Record<string, unknown>).kind === 'wake-alarm' &&
     typeof (data as Record<string, unknown>).prayerName === 'string' &&
-    typeof (data as Record<string, unknown>).alarmDate === 'string'
+    typeof (data as Record<string, unknown>).alarmDate === 'string' &&
+    ((data as Record<string, unknown>).stage === 'wudu' || (data as Record<string, unknown>).stage === 'mat')
   );
 }
 
@@ -200,7 +202,7 @@ export async function syncWakeAlarmSchedule(userId: string, prayerName: PrayerNa
     if (at.getTime() <= now.getTime()) continue; // today's own time already passed — tomorrow's (offset 1) covers it
 
     const alarmDate = toISODate(day);
-    const data: WakeAlarmNotificationData = { kind: 'wake-alarm', prayerName, alarmDate };
+    const data: WakeAlarmNotificationData = { kind: 'wake-alarm', prayerName, alarmDate, stage: 'wudu' };
 
     // Sequential (not Promise.all) — each call schedules one distinct
     // notification; sequential keeps this readable and the total count
@@ -209,7 +211,7 @@ export async function syncWakeAlarmSchedule(userId: string, prayerName: PrayerNa
       identifier: notificationIdFor(prayerName, alarmDate),
       content: {
         title: `Time to wake for ${prayerName}`,
-        body: 'Tap this, then scan your prayer mat tag to confirm you’re actually up.',
+        body: `Time for ${prayerName}. Tap to begin — go to your washroom and scan your wudu tag.`,
         sound: 'default', // no custom alarm-style sound asset bundled yet — see report
         interruptionLevel: 'timeSensitive',
         data,
@@ -220,9 +222,68 @@ export async function syncWakeAlarmSchedule(userId: string, prayerName: PrayerNa
         channelId: ANDROID_CHANNEL_ID,
       },
     });
+
+    // Wudu follow-up: fires 5 minutes after prayer time in case the user
+    // ignored the initial notification. Uses a predictable identifier so it
+    // can be cancelled after a successful wudu scan.
+    const wuduFollowUpAt = new Date(at.getTime() + 5 * 60 * 1000);
+    if (wuduFollowUpAt.getTime() > now.getTime()) {
+      const wuduFollowUpData: WakeAlarmNotificationData = { kind: 'wake-alarm', prayerName, alarmDate, stage: 'wudu' };
+      await Notifications.scheduleNotificationAsync({
+        identifier: `wake-followup:wudu:${prayerName}:${alarmDate}`,
+        content: {
+          title: `Still time for ${prayerName}`,
+          body: `Still awake? Scan your wudu tag to confirm you've made wudu.`,
+          sound: 'default',
+          interruptionLevel: 'timeSensitive',
+          data: wuduFollowUpData,
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: wuduFollowUpAt,
+          channelId: ANDROID_CHANNEL_ID,
+        },
+      });
+    }
   }
 
   return 'scheduled';
+}
+
+/** Cancels the wudu follow-up notification (the +5 min re-alarm) once the
+ * user has successfully scanned their wudu tag and is moving to the mat
+ * stage. Safe to call when nothing is scheduled. */
+export async function cancelWuduFollowUp(prayerName: PrayerName, alarmDate: string): Promise<void> {
+  await Notifications.cancelScheduledNotificationAsync(`wake-followup:wudu:${prayerName}:${alarmDate}`).catch(() => {});
+}
+
+/** Schedules a mat follow-up notification 10 minutes from now — the reminder
+ * that fires if the user scanned wudu but hasn't completed (scanned) their
+ * prayer mat within the window. */
+export async function scheduleMatFollowUp(prayerName: PrayerName, alarmDate: string): Promise<void> {
+  const fireAt = new Date(Date.now() + 10 * 60 * 1000);
+  const data: WakeAlarmNotificationData = { kind: 'wake-alarm', prayerName, alarmDate, stage: 'mat' };
+  await Notifications.scheduleNotificationAsync({
+    identifier: `wake-followup:mat:${prayerName}:${alarmDate}`,
+    content: {
+      title: `Complete your ${prayerName}`,
+      body: `You made wudu — now complete your prayer. Scan your prayer mat tag.`,
+      sound: 'default',
+      interruptionLevel: 'timeSensitive',
+      data,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: fireAt,
+      channelId: ANDROID_CHANNEL_ID,
+    },
+  });
+}
+
+/** Cancels the mat follow-up notification once the user successfully scans
+ * the mat tag. Safe to call when nothing is scheduled. */
+export async function cancelMatFollowUp(prayerName: PrayerName, alarmDate: string): Promise<void> {
+  await Notifications.cancelScheduledNotificationAsync(`wake-followup:mat:${prayerName}:${alarmDate}`).catch(() => {});
 }
 
 /** Re-syncs every enabled prayer's schedule in one call — what App.tsx should

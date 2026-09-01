@@ -23,13 +23,14 @@ import { supabase } from '../lib/supabase';
 import type { PrayerName } from './prayers';
 import { PRAYER_NAMES } from './prayers';
 
-export type WakeVerificationMethod = 'none' | 'qr_scan';
+export type WakeVerificationMethod = 'none' | 'qr_scan' | 'two_stage_qr';
 
 export type PrayerAlarmConfig = {
   prayerName: PrayerName;
   enabled: boolean;
   wakeVerificationMethod: WakeVerificationMethod;
   verificationToken: string;
+  wuduToken: string;
 };
 
 type AlarmConfigRow = {
@@ -37,6 +38,7 @@ type AlarmConfigRow = {
   enabled: boolean;
   wake_verification_method: WakeVerificationMethod;
   verification_token: string;
+  wudu_token: string;
 };
 
 function mapConfig(row: AlarmConfigRow): PrayerAlarmConfig {
@@ -45,6 +47,7 @@ function mapConfig(row: AlarmConfigRow): PrayerAlarmConfig {
     enabled: row.enabled,
     wakeVerificationMethod: row.wake_verification_method,
     verificationToken: row.verification_token,
+    wuduToken: row.wudu_token,
   };
 }
 
@@ -60,7 +63,7 @@ function mapConfig(row: AlarmConfigRow): PrayerAlarmConfig {
 async function getOrCreateAlarmConfigRow(userId: string, prayerName: PrayerName): Promise<AlarmConfigRow> {
   const { data, error } = await supabase
     .from('prayer_alarm_settings')
-    .select('prayer_name, enabled, wake_verification_method, verification_token')
+    .select('prayer_name, enabled, wake_verification_method, verification_token, wudu_token')
     .eq('user_id', userId)
     .eq('prayer_name', prayerName)
     .maybeSingle();
@@ -70,7 +73,7 @@ async function getOrCreateAlarmConfigRow(userId: string, prayerName: PrayerName)
   const { data: created, error: createError } = await supabase
     .from('prayer_alarm_settings')
     .insert({ user_id: userId, prayer_name: prayerName })
-    .select('prayer_name, enabled, wake_verification_method, verification_token')
+    .select('prayer_name, enabled, wake_verification_method, verification_token, wudu_token')
     .single();
   if (createError) throw createError;
   return created;
@@ -89,7 +92,7 @@ export async function getAlarmConfig(userId: string, prayerName: PrayerName): Pr
 export async function getAllAlarmConfigs(userId: string): Promise<Record<PrayerName, PrayerAlarmConfig>> {
   const { data, error } = await supabase
     .from('prayer_alarm_settings')
-    .select('prayer_name, enabled, wake_verification_method, verification_token')
+    .select('prayer_name, enabled, wake_verification_method, verification_token, wudu_token')
     .eq('user_id', userId);
   if (error) throw error;
 
@@ -156,6 +159,26 @@ export async function regenerateVerificationToken(userId: string, prayerName: Pr
   return token;
 }
 
+/** Same as `regenerateVerificationToken` but for the wudu (sink) token.
+ * Generates a fresh random token, persists it, and returns it so the caller
+ * can immediately re-render the wudu QR code. Old printed wudu tags stop
+ * working immediately, by design. */
+export async function regenerateWuduToken(userId: string, prayerName: PrayerName): Promise<string> {
+  await getOrCreateAlarmConfigRow(userId, prayerName); // ensures a row exists before the update below
+
+  const bytes = await Crypto.getRandomBytesAsync(32);
+  let token = '';
+  for (const b of bytes) token += b.toString(16).padStart(2, '0');
+
+  const { error } = await supabase
+    .from('prayer_alarm_settings')
+    .update({ wudu_token: token })
+    .eq('user_id', userId)
+    .eq('prayer_name', prayerName);
+  if (error) throw error;
+  return token;
+}
+
 // ---------------------------------------------------------------------------
 // wake_verifications — an append-only log of successful wake verifications.
 // ---------------------------------------------------------------------------
@@ -180,6 +203,25 @@ export async function logWakeVerification(
       { user_id: userId, prayer_name: prayerName, alarm_date: alarmDate, method, verified_at: new Date().toISOString() },
       { onConflict: 'user_id,prayer_name,alarm_date', ignoreDuplicates: true }
     );
+  if (error) throw error;
+}
+
+/** Upserts a `wudu_scanned_at` timestamp on the wake_verifications row for
+ * the given (user, prayer, date). Called when the user successfully scans the
+ * sink/wudu tag in stage 1 of the two-stage flow — before the mat scan in
+ * stage 2. Uses `DO UPDATE` on the wudu_scanned_at field only so it doesn't
+ * trample the `verified_at` set by `logWakeVerification` (stage 2). */
+export async function logWuduScan(userId: string, prayerName: PrayerName, alarmDate: string): Promise<void> {
+  const { error } = await supabase.from('wake_verifications').upsert(
+    {
+      user_id: userId,
+      prayer_name: prayerName,
+      alarm_date: alarmDate,
+      wudu_scanned_at: new Date().toISOString(),
+      method: 'two_stage_qr',
+    },
+    { onConflict: 'user_id,prayer_name,alarm_date' }
+  );
   if (error) throw error;
 }
 

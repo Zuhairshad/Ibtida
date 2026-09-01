@@ -27,7 +27,7 @@ export type RootStackParamList = {
   // src/services/wakeAlarmScheduling.ts and src/screens/shared/*.
   WakeAlarmSettings: undefined;
   PrayerMatTag: { prayerName: string };
-  WakeScan: { prayerName: string; alarmDate: string };
+  WakeScan: { prayerName: string; alarmDate: string; stage: 'wudu' | 'mat' };
 };
 
 export type TabParamList = {

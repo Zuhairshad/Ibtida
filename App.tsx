@@ -54,7 +54,14 @@ function PrayerMatTagRoute({ route }: NativeStackScreenProps<RootStackParamList,
   return <PrayerMatTagScreen prayerName={route.params.prayerName as PrayerName} />;
 }
 function WakeScanRoute({ route }: NativeStackScreenProps<RootStackParamList, 'WakeScan'>) {
-  return <WakeAlarmScanScreen prayerName={route.params.prayerName as PrayerName} alarmDate={route.params.alarmDate} />;
+  return (
+    <WakeAlarmScanScreen
+      prayerName={route.params.prayerName as PrayerName}
+      alarmDate={route.params.alarmDate}
+      stage={route.params.stage ?? 'wudu'}
+      onComplete={nav.home}
+    />
+  );
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -155,7 +162,7 @@ function RootNavigator() {
     if (!lastNotificationResponse) return;
     const data = lastNotificationResponse.notification.request.content.data;
     if (isWakeAlarmNotificationData(data)) {
-      nav.wakeScan(data.prayerName, data.alarmDate);
+      nav.wakeScan(data.prayerName, data.alarmDate, data.stage ?? 'wudu');
     }
     Notifications.clearLastNotificationResponse();
   }, [lastNotificationResponse]);

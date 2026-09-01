@@ -1,0 +1,26 @@
+# Generated or third-party trees
+node_modules/
+.expo/
+dist/
+web-build/
+ios/
+android/
+.claude/worktrees/
+graphify-out/
+
+# Binary reference material is intentionally excluded from the zero-LLM graph.
+*.png
+*.jpg
+*.jpeg
+*.pdf
+
+# Local configuration and secrets
+.env
+.env.*
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.mobileprovision
+

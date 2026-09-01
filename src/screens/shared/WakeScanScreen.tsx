@@ -10,27 +10,29 @@ import PrimaryButton from '../../components/PrimaryButton';
 
 type Props = {
   /** Called once, with the raw scanned QR payload — the wake-alarm domain's
-   * caller is expected to compare this against the prayer's
-   * `verification_token` (see `src/services/wakeAlarm.ts`) and, on a match,
-   * call `logWakeVerification` itself. This screen only scans; it never
-   * imports wakeAlarm.ts or knows what "correct" looks like, so it stays
-   * reusable for any future scan-to-verify flow, not just this one. */
+   * caller is expected to compare this against the prayer's token (see
+   * `src/services/wakeAlarm.ts`) and, on a match, perform the relevant action.
+   * This screen only scans; it never imports wakeAlarm.ts or knows what
+   * "correct" looks like, so it stays reusable for any future scan-to-verify
+   * flow, not just this one. */
   onVerified: (scannedText: string) => void;
   /** Defaults to `nav.back()` — pass this to override (e.g. a modal
    * presentation that should dismiss differently). */
   onCancel?: () => void;
+  /** Small label shown above the title — e.g. "Step 1 of 2 — Wudu". */
+  stepLabel?: string;
   title?: string;
   subtitle?: string;
 };
 
-// Shared, reusable full-screen scanner — not wired into the navigation stack
-// here (no route params are settled yet; that's the UI-wiring agent's job
-// next phase). Drop it in as a plain component and supply `onVerified`.
+// Shared, reusable full-screen scanner. Drop it in as a plain component and
+// supply `onVerified`. Used as the rendering layer by WakeAlarmScanScreen.
 export default function WakeScanScreen({
   onVerified,
   onCancel,
+  stepLabel,
   title = "Confirm you're awake",
-  subtitle = 'Scan your prayer mat tag to confirm you’re awake.',
+  subtitle = "Scan your prayer mat tag to confirm you're awake.",
 }: Props) {
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
@@ -52,6 +54,11 @@ export default function WakeScanScreen({
       </View>
 
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 }}>
+        {!!stepLabel && (
+          <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(239,243,240,0.4)', marginBottom: 8 }}>
+            {stepLabel}
+          </Text>
+        )}
         <Text style={{ fontSize: 20, fontWeight: '600', color: '#EFF3F0', textAlign: 'center' }}>{title}</Text>
         <Text style={{ fontSize: 14.5, lineHeight: 22, color: 'rgba(239,243,240,0.55)', marginTop: 10, textAlign: 'center', maxWidth: 280 }}>{subtitle}</Text>
 

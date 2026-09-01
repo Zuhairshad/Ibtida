@@ -53,7 +53,7 @@ export const nav = {
   circleNew: () => go('CircleNew'),
   wakeAlarmSettings: () => go('WakeAlarmSettings'),
   prayerMatTag: (prayerName: string) => go('PrayerMatTag', { prayerName }),
-  wakeScan: (prayerName: string, alarmDate: string) => go('WakeScan', { prayerName, alarmDate }),
+  wakeScan: (prayerName: string, alarmDate: string, stage: 'wudu' | 'mat' = 'wudu') => go('WakeScan', { prayerName, alarmDate, stage }),
   emergencyHistory: () => go('EmergencyHistory'),
   back: () => {
     buzz();
