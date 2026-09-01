@@ -91,17 +91,20 @@ export default function HomeScreen() {
   }, [user]);
 
   const times = useMemo(
-    () => calcSettings ? computePrayerTimes(calcSettings.latitude, calcSettings.longitude, calcSettings.calculationMethod, calcSettings.madhab, TODAY_DATE) : null,
+    () => calcSettings ? computePrayerTimes(calcSettings.latitude, calcSettings.longitude, calcSettings.calculationMethod, calcSettings.madhab, new Date()) : null,
     [calcSettings]
   );
-  const classification = useMemo(
-    () => calcSettings ? classifyPrayersForDate(calcSettings.latitude, calcSettings.longitude, calcSettings.calculationMethod, calcSettings.madhab, TODAY_DATE, new Date()) : null,
-    [calcSettings]
-  );
+  // countdown must come before classification — classification keys off countdown.name
+  // so it only recomputes when the prayer window actually flips, not every second.
   const countdown = useMemo(
     () => calcSettings ? getPrayerCountdownWindow(calcSettings.latitude, calcSettings.longitude, calcSettings.calculationMethod, calcSettings.madhab) : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [calcSettings, state.secs]
+  );
+  const classification = useMemo(
+    () => calcSettings ? classifyPrayersForDate(calcSettings.latitude, calcSettings.longitude, calcSettings.calculationMethod, calcSettings.madhab, new Date(), new Date()) : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [calcSettings, countdown?.name]
   );
 
   useEffect(() => {
