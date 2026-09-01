@@ -5,7 +5,7 @@ export type RootStackParamList = {
   Intentions: undefined;
   Tabs: undefined;
   PrayerDetail: { prayerName: string };
-  AdhkarSession: undefined;
+  AdhkarSession: { category: string };
   GoalNew: undefined;
   GoalComplete: undefined;
   QuranReader: undefined;

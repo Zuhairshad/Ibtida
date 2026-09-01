@@ -3,14 +3,14 @@
 // counts/labels only, the actual dhikr body lives in AdhkarSessionScreen and
 // is the one short, well-attested phrase the prototype ships with.
 export const CATEGORIES = [
-  { name: 'Morning', ar: 'أذكار الصباح', n: 18, mins: 7, pct: 100 },
-  { name: 'Evening', ar: 'أذكار المساء', n: 20, mins: 8, pct: 30 },
-  { name: 'After Salah', ar: 'بعد الصلاة', n: 9, mins: 3, pct: 66 },
-  { name: 'Protection', ar: 'الحفظ', n: 7, mins: 3, pct: 0 },
-  { name: 'Forgiveness', ar: 'الاستغفار', n: 6, mins: 2, pct: 0 },
-  { name: 'Gratitude', ar: 'الشكر', n: 5, mins: 2, pct: 40 },
-  { name: 'Before Sleep', ar: 'قبل النوم', n: 8, mins: 4, pct: 0 },
-  { name: 'Travel', ar: 'السفر', n: 5, mins: 2, pct: 0 },
+  { key: 'morning',    name: 'Morning',     ar: 'أذكار الصباح', n: 18, mins: 7, pct: 100 },
+  { key: 'evening',   name: 'Evening',     ar: 'أذكار المساء', n: 20, mins: 8, pct: 30  },
+  { key: 'after_salah', name: 'After Salah', ar: 'بعد الصلاة',  n: 9,  mins: 3, pct: 66  },
+  { key: 'protection', name: 'Protection',  ar: 'الحفظ',        n: 7,  mins: 3, pct: 0   },
+  { key: 'forgiveness', name: 'Forgiveness', ar: 'الاستغفار',  n: 6,  mins: 2, pct: 0   },
+  { key: 'gratitude',  name: 'Gratitude',   ar: 'الشكر',        n: 5,  mins: 2, pct: 40  },
+  { key: 'before_sleep', name: 'Before Sleep', ar: 'قبل النوم', n: 8,  mins: 4, pct: 0   },
+  { key: 'travel',    name: 'Travel',      ar: 'السفر',         n: 5,  mins: 2, pct: 0   },
 ];
 
 export const GOALS = [

@@ -125,7 +125,7 @@ export default function AdhkarScreen() {
             {CATEGORIES.map((c) => (
               <PressableScale
                 key={c.name}
-                onPress={nav.adhkarSession}
+                onPress={() => nav.adhkarSession(c.key)}
                 style={{ width: cardWidth, borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 22, padding: 16, backgroundColor: '#FFFFFF', minHeight: 120, justifyContent: 'space-between', gap: 12 }}
               >
                 <Text style={{ fontFamily: 'NotoNaskhArabic_500Medium', fontSize: 16, color: colors.goldInk, writingDirection: 'rtl' }}>{c.ar}</Text>
