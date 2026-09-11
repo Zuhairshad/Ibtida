@@ -89,7 +89,8 @@ export const type = {
   numeralLarge: { fontSize: 46, fontWeight: '600' as const, letterSpacing: -0.03 },
 } as const;
 
-export const arabicFont = 'NotoNaskhArabic_500Medium';
+export const arabicFont     = 'ScheherazadeNew_500Medium';
+export const arabicFontBold = 'ScheherazadeNew_700Bold';
 
 export const shadow = {
   card: {

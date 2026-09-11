@@ -16,14 +16,14 @@ import org.json.JSONObject
  * Two independent pieces of state live here, under one preferences file
  * purely to avoid a second small file:
  *
- * 1. **Scheduled alarms** (`scheduled/*`) — every currently-pending
+ * 1. **Scheduled alarms** (keys: `scheduled/<id>`) — every currently-pending
  *    `scheduleWakeAlarm(id, ...)` call, so [WakeAlarmBootReceiver] can
  *    re-register them with a fresh `AlarmManager` after a reboot (Android
  *    clears all `AlarmManager` entries on every boot — this is standard,
  *    documented platform behavior, not a bug to route around any other way).
  *    Removed on `cancelWakeAlarm`, and once an alarm actually fires (it was
  *    one-shot; `AlarmManager` already forgot it too).
- * 2. **Currently-ringing alarm** (`ringing/*`) — the single alarm `id` (if
+ * 2. **Currently-ringing alarm** (keys: `ringing/id`, `ringing/soundName`) — the single alarm `id` (if
  *    any) [WakeAlarmRingingService] is actively looping right now, so a
  *    `START_STICKY` restart after a process kill (see that service's doc
  *    comment on `START_STICKY`) knows what to resume ringing for even though
@@ -35,7 +35,7 @@ import org.json.JSONObject
  * store is unreadable until the user unlocks the device at least once after
  * a reboot — so if the device reboots (or is off) and stays locked straight
  * through a scheduled Fajr time, [WakeAlarmBootReceiver] cannot read
- * `scheduled/*` yet and that occurrence is silently missed. Making this
+ * `scheduled/<id>` entries yet and that occurrence is silently missed. Making this
  * survive that specific edge case would mean moving to
  * `Context#createDeviceProtectedStorageContext()` and handling
  * `ACTION_LOCKED_BOOT_COMPLETED` instead of `ACTION_BOOT_COMPLETED` — real,

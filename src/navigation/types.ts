@@ -8,6 +8,8 @@ export type RootStackParamList = {
   AdhkarSession: { category: string };
   GoalNew: undefined;
   GoalComplete: undefined;
+  GoalTasbeeh: { goalId: string | null; title: string; target: number; progress: number; communityGoalId: string | null };
+  GoalSchedule: undefined;
   QuranReader: undefined;
   FocusSetup: undefined;
   // `goalId`/`target` are set for a goal-locked ("Ibadah Lock") session

@@ -61,8 +61,9 @@ export default function AdhkarScreen() {
           </PressableScale>
         </RiseIn>
 
-        <RiseIn delay={80} style={{ paddingHorizontal: 24, marginTop: 18 }}>
-          {activeGoals !== null && activeGoals > 0 ? (
+        {/* Active goals banner — show when user has in-progress goals */}
+        {activeGoals !== null && activeGoals > 0 && (
+          <RiseIn delay={80} style={{ paddingHorizontal: 24, marginTop: 18 }}>
             <PressableScale
               onPress={nav.goals}
               style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 28, padding: 22, backgroundColor: '#FBF8F1' }}
@@ -73,11 +74,32 @@ export default function AdhkarScreen() {
               </Text>
               <Text style={{ fontSize: 13.5, color: colors.inkMuted, marginTop: 7 }}>Tap to view your progress</Text>
             </PressableScale>
-          ) : (
-            <View style={{ borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 28, padding: 22, backgroundColor: '#FBF8F1', alignItems: 'center' }}>
-              <Text style={{ fontSize: 14, color: colors.inkMuted }}>No active session</Text>
-            </View>
-          )}
+          </RiseIn>
+        )}
+
+        {/* Adhkar hub — Morning / Evening / All shortcut strip (H-08) */}
+        <RiseIn delay={90} style={{ paddingHorizontal: 24, marginTop: activeGoals ? 12 : 18 }}>
+          <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.1, textTransform: 'uppercase', color: colors.inkSecondary, marginBottom: 10 }}>Adhkar sets</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {[
+              { key: 'morning', label: 'Morning', ar: 'أذكار الصباح', mins: 7, tint: '#FFF8E8', ink: '#B45309' },
+              { key: 'evening', label: 'Evening', ar: 'أذكار المساء', mins: 8, tint: '#EEF4FF', ink: '#3B5CA3' },
+              { key: 'after_salah', label: 'After Salah', ar: 'بعد الصلاة', mins: 3, tint: '#F0FBF4', ink: '#2F6B45' },
+            ].map((set) => (
+              <PressableScale
+                key={set.key}
+                onPress={() => nav.adhkarSession(set.key)}
+                scaleTo={0.97}
+                style={{ flex: 1, borderWidth: 1, borderColor: 'rgba(23,32,28,0.06)', borderRadius: 18, padding: 14, backgroundColor: set.tint, minHeight: 100, justifyContent: 'space-between' }}
+              >
+                <Text style={{ fontFamily: 'ScheherazadeNew_500Medium', fontSize: 14, color: set.ink, writingDirection: 'rtl' }}>{set.ar}</Text>
+                <View>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: colors.inkStrong }}>{set.label}</Text>
+                  <Text style={{ fontSize: 11, color: colors.inkSecondary, marginTop: 3 }}>{set.mins} min</Text>
+                </View>
+              </PressableScale>
+            ))}
+          </View>
         </RiseIn>
 
         {/* Goals live in this tab group, so they need an entry point here —
@@ -128,7 +150,7 @@ export default function AdhkarScreen() {
                 onPress={() => nav.adhkarSession(c.key)}
                 style={{ width: cardWidth, borderWidth: 1, borderColor: 'rgba(23,32,28,0.05)', borderRadius: 22, padding: 16, backgroundColor: '#FFFFFF', minHeight: 120, justifyContent: 'space-between', gap: 12 }}
               >
-                <Text style={{ fontFamily: 'NotoNaskhArabic_500Medium', fontSize: 16, color: colors.goldInk, writingDirection: 'rtl' }}>{c.ar}</Text>
+                <Text style={{ fontFamily: 'ScheherazadeNew_500Medium', fontSize: 16, color: colors.goldInk, writingDirection: 'rtl' }}>{c.ar}</Text>
                 <View>
                   <Text style={{ fontSize: 15, fontWeight: '600', color: colors.inkStrong }}>{c.name}</Text>
                   <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 5 }}>

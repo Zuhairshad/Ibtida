@@ -6,7 +6,13 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
-import { useFonts, NotoNaskhArabic_500Medium, NotoNaskhArabic_600SemiBold } from '@expo-google-fonts/noto-naskh-arabic';
+import {
+  useFonts,
+  ScheherazadeNew_400Regular,
+  ScheherazadeNew_500Medium,
+  ScheherazadeNew_600SemiBold,
+  ScheherazadeNew_700Bold,
+} from '@expo-google-fonts/scheherazade-new';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppStateProvider } from './src/state/AppState';
@@ -16,6 +22,8 @@ import { RootStackParamList } from './src/navigation/types';
 import { navigationRef, nav } from './src/navigation/navigate';
 import type { PrayerName } from './src/services/prayers';
 import { configureWakeAlarmNotifications, syncAllWakeAlarmSchedules, isWakeAlarmNotificationData } from './src/services/wakeAlarmScheduling';
+import { setupMotivationChannel, schedulePrayerMotivationNotifications, isMotivNotifData } from './src/services/prayerNotifications';
+import { getPrayerCalcSettings } from './src/services/prayerSettings';
 
 import WelcomeScreen from './src/screens/onboarding/WelcomeScreen';
 import IntentionsScreen from './src/screens/onboarding/IntentionsScreen';
@@ -24,6 +32,8 @@ import PrayerDetailScreen from './src/screens/prayer/PrayerDetailScreen';
 import AdhkarSessionScreen from './src/screens/adhkar/AdhkarSessionScreen';
 import GoalNewScreen from './src/screens/adhkar/GoalNewScreen';
 import GoalCompleteScreen from './src/screens/adhkar/GoalCompleteScreen';
+import GoalTasbeehScreen from './src/screens/adhkar/GoalTasbeehScreen';
+import GoalScheduleScreen from './src/screens/adhkar/GoalScheduleScreen';
 import QuranReaderScreen from './src/screens/quran/QuranReaderScreen';
 import FocusSetupScreen from './src/screens/focus/FocusSetupScreen';
 import FocusActiveScreen from './src/screens/focus/FocusActiveScreen';
@@ -68,8 +78,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
-    NotoNaskhArabic_500Medium,
-    NotoNaskhArabic_600SemiBold,
+    ScheherazadeNew_400Regular,
+    ScheherazadeNew_500Medium,
+    ScheherazadeNew_600SemiBold,
+    ScheherazadeNew_700Bold,
   });
 
   const onLayout = useCallback(async () => {
@@ -88,6 +100,7 @@ export default function App() {
   // src/services/wakeAlarmScheduling.ts.
   useEffect(() => {
     configureWakeAlarmNotifications();
+    setupMotivationChannel();
   }, []);
 
   if (!fontsLoaded && !fontError) return null;
@@ -140,14 +153,17 @@ function RootNavigator() {
   // time the app comes back to the foreground.
   useEffect(() => {
     if (!userId) return;
-    syncAllWakeAlarmSchedules(userId).catch(() => {
-      // Best-effort — a failed sync just leaves the previous schedule (or
-      // none) in place; the next foreground/launch tries again.
-    });
+
+    function syncAll() {
+      syncAllWakeAlarmSchedules(userId!).catch(() => {});
+      getPrayerCalcSettings(userId!).then((settings) => {
+        if (settings) schedulePrayerMotivationNotifications(settings).catch(() => {});
+      }).catch(() => {});
+    }
+
+    syncAll();
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        syncAllWakeAlarmSchedules(userId).catch(() => {});
-      }
+      if (state === 'active') syncAll();
     });
     return () => sub.remove();
   }, [userId]);
@@ -163,6 +179,9 @@ function RootNavigator() {
     const data = lastNotificationResponse.notification.request.content.data;
     if (isWakeAlarmNotificationData(data)) {
       nav.wakeScan(data.prayerName, data.alarmDate, data.stage ?? 'wudu');
+    } else if (isMotivNotifData(data)) {
+      if (data.kind === 'prayer-adhan') nav.prayer();
+      else nav.tasbeeh();
     }
     Notifications.clearLastNotificationResponse();
   }, [lastNotificationResponse]);
@@ -189,6 +208,8 @@ function RootNavigator() {
         <Stack.Screen name="AdhkarSession" component={AdhkarSessionScreen} options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="GoalNew" component={GoalNewScreen} options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="GoalComplete" component={GoalCompleteScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="GoalTasbeeh" component={GoalTasbeehScreen} options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="GoalSchedule" component={GoalScheduleScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="QuranReader" component={QuranReaderScreen} options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="FocusSetup" component={FocusSetupScreen} options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="FocusActive" component={FocusActiveScreen} options={{ animation: 'fade' }} />

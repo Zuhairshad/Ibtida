@@ -197,10 +197,21 @@ export function getPrayerCountdownWindow(latitude: number, longitude: number, ca
   return { name: next.name, start, end: next.at, secondsRemaining: secondsUntil(next.at, now), totalSeconds };
 }
 
-/** Formats a prayer Date in the saved location's IANA timezone (never the
- * device's own — adhan's own README warning) as e.g. "4:10 AM". */
+/** Formats a prayer Date as e.g. "4:10 AM" in the location's IANA timezone.
+ * Always pass calcSettings.timezone so the times match the saved coordinates,
+ * not the device's timezone (which may differ from the prayer location). */
 export function formatPrayerTime(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone }).format(at);
+  const h = at.getHours();
+  const m = at.getMinutes();
+  // Use Intl with the location's timezone for correct local time
+  try {
+    return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone }).format(at);
+  } catch {
+    // Fallback: use device local time if timezone string is invalid
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+  }
 }
 
 /** Real great-circle bearing (degrees from true North) to the Kaaba from a

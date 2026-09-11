@@ -65,7 +65,7 @@ const initialState: State = {
   quranTab: 0,
   adhkarMode: 0,
   logMode: 1,
-  dateIdx: 3,
+  dateIdx: 6,
   qiblaOpen: false,
   // Seeded with the old demo target (23m 56s) only until the first screen
   // that knows the user's real location/settings calls `setSecs` with the

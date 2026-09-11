@@ -89,6 +89,22 @@
             </intent-filter>
         </receiver>
 
+        <!--
+          Posts a rotating dhikr reminder every time the user dismisses the
+          lock screen. ACTION_USER_PRESENT fires after unlock (biometric / PIN
+          / pattern), not just on screen-on, so the message appears exactly
+          when the user picks up the phone to use it.
+          android:exported="true" is required — this intent is broadcast by the
+          OS itself (system process), not by our own app.
+        -->
+        <receiver
+            android:name=".ScreenUnlockReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.USER_PRESENT" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".WakeAlarmRingingService"
             android:exported="false"

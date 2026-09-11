@@ -221,7 +221,7 @@ export default function SearchScreen() {
                 {/* Arabic text */}
                 {r.text && (
                   <Text
-                    style={{ fontSize: 18, lineHeight: 32, color: colors.inkStrong, textAlign: 'right', fontFamily: 'NotoNaskhArabic_400Regular' }}
+                    style={{ fontSize: 18, lineHeight: 32, color: colors.inkStrong, textAlign: 'right', fontFamily: 'ScheherazadeNew_400Regular' }}
                     numberOfLines={3}
                   >
                     {r.text}

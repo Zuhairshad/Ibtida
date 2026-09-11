@@ -11,17 +11,24 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.shad005.ibtida-app",
       "infoPlist": {
-        "NSSupportsTimeSensitiveNotifications": true
+        "NSSupportsTimeSensitiveNotifications": true,
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
+      "package": "com.shad005.ibtidaapp",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -43,7 +50,14 @@
         }
       ],
       "expo-notifications",
-      "./plugins/withIbadahAndroidManifest"
-    ]
+      "./plugins/withIbadahAndroidManifest",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e291b39a-1289-40c1-b874-b08a233b9410"
+      }
+    },
+    "owner": "shad005"
   }
 }

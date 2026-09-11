@@ -85,9 +85,9 @@ export default function CommunityGoalScreen() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
         <RiseIn style={{ paddingHorizontal: 24 }}>
-          <PressableScale onPress={nav.community} scaleTo={1} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start' }}>
+          <PressableScale onPress={nav.back} scaleTo={1} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start' }}>
             <ChevronLeftIcon color={colors.inkMuted} />
-            <Text style={{ fontSize: 14, fontWeight: '500', color: colors.inkMuted }}>Community</Text>
+            <Text style={{ fontSize: 14, fontWeight: '500', color: colors.inkMuted }}>Back</Text>
           </PressableScale>
         </RiseIn>
 
@@ -148,9 +148,26 @@ export default function CommunityGoalScreen() {
           </View>
         </RiseIn>
 
-        <RiseIn delay={190} style={{ paddingHorizontal: 24, marginTop: 14 }}>
-          <PrimaryButton label="Contribute dhikr" onPress={nav.tasbeeh} />
-        </RiseIn>
+        {goal.joined && (
+          <RiseIn delay={190} style={{ paddingHorizontal: 24, marginTop: 12 }}>
+            <PressableScale
+              onPress={() => nav.goalTasbeeh(null, goal.name, goal.target, goal.myProgress, goal.id)}
+              scaleTo={0.97}
+              style={{ borderRadius: 20, backgroundColor: colors.primary, paddingVertical: 18, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>Count with tasbeeh →</Text>
+              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
+                Your count: {goal.myProgress.toLocaleString()} recitations
+              </Text>
+            </PressableScale>
+          </RiseIn>
+        )}
+
+        {!goal.joined && (
+          <RiseIn delay={190} style={{ paddingHorizontal: 24, marginTop: 14 }}>
+            <PrimaryButton label="Join to contribute" onPress={onJoin} disabled={joining} />
+          </RiseIn>
+        )}
       </ScrollView>
 
       <Toast message={toast} onDismiss={() => setToast(null)} />

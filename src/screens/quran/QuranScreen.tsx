@@ -100,7 +100,7 @@ export default function QuranScreen() {
         >
           <BookmarkIcon size={18} color={marked ? colors.goldInk : '#C9CEC8'} />
         </PressableScale>
-        <Text style={{ fontFamily: 'NotoNaskhArabic_500Medium', fontSize: 17, lineHeight: 26, color: colors.goldInk }}>{s.ar}</Text>
+        <Text style={{ fontFamily: 'ScheherazadeNew_500Medium', fontSize: 17, lineHeight: 26, color: colors.goldInk }}>{s.ar}</Text>
       </PressableScale>
     );
   };

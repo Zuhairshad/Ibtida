@@ -31,6 +31,9 @@ export const nav = {
   adhkar: () => go('Tabs', { screen: 'AdhkarTab', params: { screen: 'Adhkar' } }),
   adhkarSession: (category: string) => go('AdhkarSession', { category }),
   tasbeeh: () => go('Tabs', { screen: 'AdhkarTab', params: { screen: 'Tasbeeh2' } }),
+  goalTasbeeh: (goalId: string | null, title: string, target: number, progress: number, communityGoalId: string | null) =>
+    go('GoalTasbeeh', { goalId, title, target, progress, communityGoalId }),
+  goalSchedule: () => go('GoalSchedule'),
   goals: () => go('Tabs', { screen: 'AdhkarTab', params: { screen: 'Goals' } }),
   goalNew: () => go('GoalNew'),
   goalComplete: () => go('GoalComplete'),

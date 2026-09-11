@@ -21,7 +21,7 @@ import Toast from '../../components/Toast';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PrayerDetail'>;
 
-const LOG_MODES = ['Missed', 'On time', "In jama’ah"];
+const LOG_MODES = ['Missed', 'On time', "In jama'ah"];
 
 // This sheet has no date param (route only carries `prayerName`) — it always
 // reads/writes today's log, same as AppState's old single "today" snapshot.
@@ -39,6 +39,7 @@ export default function PrayerDetailScreen({ route }: Props) {
   const [marking, setMarking] = useState(false);
   const [adhanBusy, setAdhanBusy] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [showDhikrPrompt, setShowDhikrPrompt] = useState(false);
   // Which prayer's data has actually loaded — lets "loading" be derived at
   // render time (`loadedName !== name`) instead of a separate setState called
   // synchronously inside the fetch effect below.
@@ -84,14 +85,16 @@ export default function PrayerDetailScreen({ route }: Props) {
   // a confirmed 'current' or 'done' (missed-so-far, i.e. qada) window does.
   const upcoming = classification === null || classification === 'upcoming';
 
-  const deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const timeLabel = times ? formatPrayerTime(times[name.toLowerCase() as 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'], deviceTz) : '—:—';
+  const locationTz = calcSettings
+    ? (() => { const off = Math.round(calcSettings.longitude / 15); return off === 0 ? 'UTC' : off < 0 ? `Etc/GMT+${-off}` : `Etc/GMT-${off}`; })()
+    : Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timeLabel = times ? formatPrayerTime(times[name.toLowerCase() as 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'], locationTz) : '—:—';
   const endsAtLabel = (() => {
     if (!times) return '—:—';
     const order: (keyof typeof times)[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
     const idx = order.indexOf(name.toLowerCase() as keyof typeof times);
     const nextKey = order[idx + 1];
-    return nextKey ? formatPrayerTime(times[nextKey], deviceTz) : formatPrayerTime(times.fajr, deviceTz);
+    return nextKey ? formatPrayerTime(times[nextKey], locationTz) : formatPrayerTime(times.fajr, locationTz);
   })();
 
   useEffect(() => {
@@ -130,7 +133,12 @@ export default function PrayerDetailScreen({ route }: Props) {
     try {
       const next = await PrayerService.togglePrayer(user.id, name, today);
       setIsLogged(next);
-      nav.back();
+      // Show Tasbeeh Fatima prompt after marking as prayed (H-10)
+      if (next) {
+        setShowDhikrPrompt(true);
+      } else {
+        nav.back();
+      }
     } catch (e) {
       setToastMsg(e instanceof Error ? e.message : 'Could not update this prayer log.');
     } finally {
@@ -203,7 +211,7 @@ export default function PrayerDetailScreen({ route }: Props) {
       <View style={{ marginTop: 10, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 20, backgroundColor: '#FFFFFF', padding: 16 }}>
         <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.09, textTransform: 'uppercase', color: colors.inkSecondary }}>Optional note</Text>
         <Text style={{ fontSize: 14, lineHeight: 21, color: colors.inkSecondary, marginTop: 10 }}>
-          {isLogged ? 'Prayed at the masjid with Yusuf’s father.' : 'Add a note after you log this prayer.'}
+          {isLogged ? "Prayed at the masjid with Yusuf's father." : 'Add a note after you log this prayer.'}
         </Text>
       </View>
 
@@ -232,15 +240,46 @@ export default function PrayerDetailScreen({ route }: Props) {
         <Toggle on={adhanOn} />
       </PressableScale>
 
-      {/* THE ACTUAL BUG FIX: a prayer whose time window hasn't started yet
-          (classification 'upcoming') can't be marked as prayed — a past
-          'done'-window or a 'current' prayer still can, including logging a
-          missed one late (legitimate qada). */}
-      {upcoming && !isLogged && (
-        <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 10, textAlign: 'center' }}>{name} hasn’t started yet — check back at {timeLabel}.</Text>
+      {/* Alarm shortcut (H-06) */}
+      <PressableScale
+        onPress={nav.wakeAlarmSettings}
+        scaleTo={0.99}
+        style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 20, backgroundColor: '#FFFFFF', paddingVertical: 15, paddingHorizontal: 16 }}
+      >
+        <Text style={{ fontSize: 15, fontWeight: '500', color: colors.inkStrong }}>Wake alarm</Text>
+        <Text style={{ fontSize: 12, color: colors.inkSecondary }}>Two-step verification ›</Text>
+      </PressableScale>
+
+      {/* Qada clarity for past prayers (H-03) */}
+      {classification === 'done' && !isLogged && (
+        <View style={{ marginTop: 10, borderRadius: 16, backgroundColor: 'rgba(201,107,107,0.08)', padding: 12 }}>
+          <Text style={{ fontSize: 12.5, color: colors.dangerInk, lineHeight: 18 }}>
+            {name}'s window has passed. You can still log it as Qada.
+          </Text>
+        </View>
       )}
-      <PrimaryButton label={isLogged ? 'Remove log' : 'Mark as prayed'} onPress={onMark} disabled={loading || (upcoming && !isLogged)} loading={marking} style={{ marginTop: 16 }} />
-      <SecondaryButton label="Cancel" onPress={nav.back} style={{ marginTop: 2 }} />
+
+      {/* Upcoming guard */}
+      {upcoming && !isLogged && (
+        <Text style={{ fontSize: 12, color: colors.inkSecondary, marginTop: 10, textAlign: 'center' }}>{name} hasn't started yet — check back at {timeLabel}.</Text>
+      )}
+
+      {/* Post-prayer Tasbeeh Fatima prompt (H-10) */}
+      {showDhikrPrompt ? (
+        <View style={{ marginTop: 16, gap: 8 }}>
+          <View style={{ borderRadius: 16, backgroundColor: colors.successTint, padding: 14 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#2F6B45' }}>Masha'Allah! {name} logged.</Text>
+            <Text style={{ fontSize: 13, color: '#2F6B45', marginTop: 4 }}>Continue with Tasbeeh Fatima?</Text>
+          </View>
+          <PrimaryButton label="Start Tasbeeh Fatima" onPress={() => { nav.back(); setTimeout(nav.tasbeeh, 200); }} style={{ marginTop: 4 }} />
+          <SecondaryButton label="Close" onPress={nav.back} />
+        </View>
+      ) : (
+        <>
+          <PrimaryButton label={isLogged ? 'Remove log' : classification === 'done' ? 'Mark as Qada' : 'Mark as prayed'} onPress={onMark} disabled={loading || (upcoming && !isLogged)} loading={marking} style={{ marginTop: 16 }} />
+          <SecondaryButton label="Cancel" onPress={nav.back} style={{ marginTop: 2 }} />
+        </>
+      )}
       <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />
     </BottomSheetModal>
   );

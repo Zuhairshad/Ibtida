@@ -87,11 +87,11 @@ export default function CommunityScreen() {
     try {
       const { circleId, circleName } = await joinCircleByCode(user.id, joinCode.trim());
       setJoinCode('');
-      setToast(`Joined "${circleName}"!`);
       const updated = await listMyCircles(user.id);
       setCircles(updated);
       setCircleCount(updated.length);
-      setTimeout(() => nav.circleDetail(circleId), 800);
+      setToast(`Joined "${circleName}"! Opening circle…`);
+      nav.circleDetail(circleId);
     } catch (e) {
       setToast(e instanceof Error ? e.message : 'Invalid invite code — check and try again.');
     } finally {
@@ -127,9 +127,13 @@ export default function CommunityScreen() {
                 </Text>
               </View>
               {g.joined ? (
-                <View style={{ backgroundColor: colors.bgTint, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 12 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.inkStrong }}>Joined</Text>
-                </View>
+                <PressableScale
+                  onPress={() => nav.communityGoal(i)}
+                  scaleTo={0.95}
+                  style={{ backgroundColor: colors.bgTint, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 12 }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>View ›</Text>
+                </PressableScale>
               ) : (
                 <PressableScale
                   onPress={() => onJoin(g.id)}
@@ -153,6 +157,13 @@ export default function CommunityScreen() {
               {g.totalProgress.toLocaleString()} / {g.target.toLocaleString()}
               {g.unit ? ` ${g.unit}` : ''}
             </Text>
+            {/* Show user's own contribution when joined (H-11) */}
+            {g.joined && (
+              <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 6, borderTopWidth: 1, borderColor: colors.divider, paddingTop: 10 }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.08, color: colors.inkSecondary }}>My contribution</Text>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: colors.inkStrong }}>{g.myProgress.toLocaleString()}{g.unit ? ` ${g.unit}` : ''}</Text>
+              </View>
+            )}
           </PressableScale>
         );
       })}
